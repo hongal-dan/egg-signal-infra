@@ -1,1 +1,1 @@
-Onion-chat infra repository
+Egg-Signal infra repository
