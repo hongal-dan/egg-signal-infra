@@ -20,9 +20,6 @@ Parameters:
     Type: String
     Description: secrets-manager resource name
 
-  SNSStack:
-    Type: String
-
 Resources:
   Cluster:
     Type: AWS::ECS::Cluster

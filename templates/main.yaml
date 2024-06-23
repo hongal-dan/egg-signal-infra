@@ -89,7 +89,6 @@ Resources:
         ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
         MaxContainers: !Ref MaxContainers
         SecretsArn: !Ref SecretsArn
-        SNSStack: !Select [ 1, !Split [ "/", !Ref SNSStack ] ]
 
   ServerPipelineStack:
     Type: AWS::CloudFormation::Stack
@@ -143,16 +142,6 @@ Resources:
     Properties:
       TemplateURL:
         Fn::Sub: https://${TemplateBucket}.s3.${AWS::URLSuffix}/lambda.yaml
-      Parameters:
-        ProjectName: !Ref ProjectName
-        EnvironmentStage: !Ref EnvironmentStage
-        SecretsArn: !Ref SecretsArn
-
-  SNSStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL:
-        Fn::Sub: https://${TemplateBucket}.s3.${AWS::URLSuffix}/sns.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         EnvironmentStage: !Ref EnvironmentStage
