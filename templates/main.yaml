@@ -38,7 +38,6 @@ Parameters:
 
   DomainName:
     Type: String
-    Default: syeong.link
 
   HostedZoneId:
     Type: String
@@ -47,9 +46,6 @@ Parameters:
     Type: String
     AllowedValues:
       - prod
-
-  FileCertificateArn:
-    Type: String
 
 Resources:
   NetworkStack:
