@@ -114,7 +114,7 @@ Resources:
               Fn::Join:
                 - '-'
                 - - !Ref ALBStack
-                  - TargetGroup
+                  - ServerTargetGroup
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED
@@ -134,7 +134,7 @@ Resources:
                 Fn::Join:
                   - '-'
                   - - !Ref ALBStack
-                    - ContainerSecurityGroup
+                    - ServerContainerSecurityGroup
 
   AutoScalingRole:
     Type: AWS::IAM::Role
