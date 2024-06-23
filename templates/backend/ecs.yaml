@@ -23,9 +23,6 @@ Parameters:
   SNSStack:
     Type: String
 
-  S3Stack:
-    Type: String
-
 Resources:
   Cluster:
     Type: AWS::ECS::Cluster
@@ -82,14 +79,6 @@ Resources:
             - ContainerPort: 3000
               HostPort: 3000
               Protocol: tcp
-          Environment:
-            - Name: FILE_BUCKET
-              Value:
-                Fn::ImportValue:
-                  Fn::Join:
-                    - '-'
-                    - - !Ref S3Stack
-                      - FileBucket
           Secrets:
             - Name: MONGODB_URI
               ValueFrom:

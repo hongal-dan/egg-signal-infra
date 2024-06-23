@@ -14,7 +14,7 @@ Parameters:
     Type: String
     Description: Name of full domain including subdomain.
 
-  CertificateArn:
+  CertificateStack:
     Type: String
     Description: ARN of the SSL certificate.
 
@@ -112,7 +112,12 @@ Resources:
       Port: 443
       Protocol: HTTPS
       Certificates:
-        - CertificateArn: !Ref CertificateArn
+        - CertificateArn:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref CertificateStack
+                  - CertificateArn
 
   ServerContainerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
