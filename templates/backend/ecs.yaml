@@ -1,0 +1,285 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ECS related resources template
+
+Parameters:
+  NetworkStack:
+    Type: String
+    Description: The name of network stack.
+    Default: network
+
+  ALBStack:
+    Type: String
+    Description: The name of Application Load Balancer stack.
+    Default: alb
+
+  MaxContainers:
+    Type: Number
+    Description: Max containers to scale to
+
+  SecretsArn:
+    Type: String
+    Description: secrets-manager resource name
+
+  SNSStack:
+    Type: String
+
+  S3Stack:
+    Type: String
+
+Resources:
+  Cluster:
+    Type: AWS::ECS::Cluster
+
+  TaskDefinitionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+
+  TaskDefinitionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+                - ecs.amazonaws.com
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/AmazonECS_FullAccess
+        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: 512
+      Memory: 1024
+      ExecutionRoleArn: !GetAtt TaskDefinitionRole.Arn
+      TaskRoleArn: !GetAtt TaskDefinitionRole.Arn
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: serverless-container-api
+          Essential: true
+          Image: public.ecr.aws/nginx/nginx:latest
+          # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using_awslogs.html
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref TaskDefinitionLogGroup
+              awslogs-stream-prefix: api-container
+              awslogs-region: !Ref AWS::Region
+          PortMappings:
+            - ContainerPort: 3000
+              HostPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: FILE_BUCKET
+              Value:
+                Fn::ImportValue:
+                  Fn::Join:
+                    - '-'
+                    - - !Ref S3Stack
+                      - FileBucket
+          Secrets:
+            - Name: MONGODB_URI
+              ValueFrom:
+                !Sub
+                - '${SecretsArn}:MONGODB_URI::'
+                - { SecretsArn: !Ref SecretsArn }
+            - Name: JWT_SECRET
+              ValueFrom:
+                !Sub
+                - '${SecretsArn}:JWT_SECRET::'
+                - { SecretsArn: !Ref SecretsArn }
+            - Name: OPENVIDU_URL
+              ValueFrom:
+                !Sub
+                - '${SecretsArn}:OPENVIDU_URL::'
+                - { SecretsArn: !Ref SecretsArn }
+            - Name: OPENVIDU_SECRET
+              ValueFrom:
+                !Sub
+                - '${SecretsArn}:OPENVIDU_SECRET::'
+                - { SecretsArn: !Ref SecretsArn }
+
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref Cluster
+      LaunchType: FARGATE
+      DesiredCount: 1
+      TaskDefinition: !Ref TaskDefinition
+      HealthCheckGracePeriodSeconds: 60
+      LoadBalancers:
+        - ContainerName: serverless-container-api
+          ContainerPort: 3000
+          TargetGroupArn:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref ALBStack
+                  - TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - Fn::ImportValue:
+                Fn::Join:
+                  - '-'
+                  - - !Ref NetworkStack
+                    - PrivateSubnet1
+            - Fn::ImportValue:
+                Fn::Join:
+                  - '-'
+                  - - !Ref NetworkStack
+                    - PrivateSubnet2
+          SecurityGroups:
+            - Fn::ImportValue:
+                Fn::Join:
+                  - '-'
+                  - - !Ref ALBStack
+                    - ContainerSecurityGroup
+
+  AutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:DescribeServices
+                  - ecs:UpdateService
+                  - cloudwatch:DeleteAlarms
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:PutMetricAlarm
+                Resource: '*'
+
+  AutoScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: 1
+      MaxCapacity: !Ref MaxContainers
+      ResourceId: !Join
+        - '/'
+        - - service
+          - !Ref Cluster
+          - !GetAtt Service.Name
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+      RoleARN: !GetAtt AutoScalingRole.Arn
+
+  ScaleUpPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName:
+        Fn::Join:
+          - '-'
+          - - !GetAtt [ Service, Name ]
+            - up
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref AutoScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        MetricAggregationType: Average
+        StepAdjustments:
+          - MetricIntervalLowerBound: 0
+            ScalingAdjustment: 1
+
+  ScaleDownPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName:
+        Fn::Join:
+          - '-'
+          - - !GetAtt [ Service, Name ]
+            - down
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref AutoScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        MetricAggregationType: Average
+        StepAdjustments:
+          - MetricIntervalLowerBound: 0
+            ScalingAdjustment: -1
+
+  CPUUtilizationHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Join [ '-', [ !Ref "AWS::StackName", "CPUUtilizationHigh" ] ]
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 70
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref Cluster
+        - Name: ServiceName
+          Value: !GetAtt Service.Name
+      AlarmActions:
+        - !Ref ScaleUpPolicy
+
+  CPUUtilizationLowAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Join [ '-', [ !Ref "AWS::StackName", "CPUUtilizationLow" ] ]
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 30
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref Cluster
+        - Name: ServiceName
+          Value: !GetAtt Service.Name
+      AlarmActions:
+        - !Ref ScaleDownPolicy
+
+
+Outputs:
+  Cluster:
+    Value: !Ref Cluster
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - Cluster
+  ServiceName:
+    Value: !GetAtt [ Service, Name ]
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - ServiceName
