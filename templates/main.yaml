@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Infra Main Stack
+
+Parameters:
+
+  ProjectName:
+    Type: String
+    Description: The name of the project
+
+  TemplateBucket:
+    Type: String
+    Description: S3 bucket name for the Nested Stacks
+
+  MaxContainers:
+    Type: Number
+    Description: Max containers to scale to
+    Default: 2
+
+  SecretsArn:
+    Type: String
+    Description: secrets-manager resource name
+
+  GitHubOwner:
+    Type: String
+    Description: GitHub Owner
+
+  ServerRepository:
+    Type: String
+    Description: Server Repository name
+
+  ServerBranch:
+    Type: String
+    Description: GitHub Branch to subscribe
+
+  CodeStarConnectionArn:
+    Type: String
+    Description: CodeStar Resource Arn for subscribe codes
+
+  DomainName:
+    Type: String
+
+  HostedZoneId:
+    Type: String
+
+  EnvironmentStage:
+    Type: String
+    AllowedValues:
+      - prod
+
+Resources:
+  NetworkStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/network.yaml
+      TimeoutInMinutes: 20
+      Parameters:
+        ProjectName: !Ref ProjectName
+      Tags:
+        - Key: Name
+          Value: !Ref ProjectName
+
+  ALBStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/alb.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
+        DomainName:
+          Fn::Join:
+            - '.'
+            - - Fn::Join:
+                  - ''
+                  - - egg-signal-server
+                    - Fn::FindInMap:
+                        - SubdomainSuffixMap
+                        - !Ref EnvironmentStage
+                        - value
+              - !Ref DomainName
+        CertificateStack: !Select [ 1, !Split [ "/", !Ref APICertificate ] ]
+        HostedZoneId: !Ref HostedZoneId
+
+  ECSStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/ecs.yaml
+      Parameters:
+        NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
+        ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
+        MaxContainers: !Ref MaxContainers
+        SecretsArn: !Ref SecretsArn
+        SNSStack: !Select [ 1, !Split [ "/", !Ref SNSStack ] ]
+
+  ServerPipelineStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/pipeline.yaml
+      TimeoutInMinutes: 20
+      Parameters:
+        ECSStack: !Select [ 1, !Split [ '/', !Ref ECSStack ] ]
+        Owner: !Ref GitHubOwner
+        Repo: !Ref ServerRepository
+        Branch: !Ref ServerBranch
+        CodeStarConnectionArn: !Ref CodeStarConnectionArn
+
+  ServerNotification:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/notifications/pipelineNotification.yaml
+      Parameters:
+        PipelineStack: !Select [ 1, !Split [ '/', !Ref ServerPipelineStack ] ]
+        LambdaStack: !Select [ 1, !Split [ '/', !Ref LambdaStack ] ]
+        NotificationName:
+          Fn::Join:
+            - ''
+            - - egg-signal-server
+              - Fn::FindInMap:
+                  - SubdomainSuffixMap
+                  - !Ref EnvironmentStage
+                  - value
+
+  APICertificate:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/certificate.yaml
+      TimeoutInMinutes: 20
+      Parameters:
+        DomainName:
+          Fn::Join:
+            - '.'
+            - - Fn::Join:
+                  - ''
+                  - - egg-signal-server
+                    - Fn::FindInMap:
+                        - SubdomainSuffixMap
+                        - !Ref EnvironmentStage
+                        - value
+              - !Ref DomainName
+        HostedZoneId: !Ref HostedZoneId
+
+  LambdaStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        Fn::Sub: https://${TemplateBucket}.s3.${AWS::URLSuffix}/lambda.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        EnvironmentStage: !Ref EnvironmentStage
+        SecretsArn: !Ref SecretsArn
+
+  SNSStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        Fn::Sub: https://${TemplateBucket}.s3.${AWS::URLSuffix}/sns.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        EnvironmentStage: !Ref EnvironmentStage
+        SecretsArn: !Ref SecretsArn
+
+Mappings:
+  SubdomainSuffixMap:
+    prod:
+      value: ''

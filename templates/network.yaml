@@ -1,0 +1,245 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VPC for service
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: The name of project
+
+Resources:
+  # VPC 설정
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: eggSignalVPC
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.8.0/24
+      VpcId:
+        Ref: VPC
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ap-northeast-2
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - - !Ref ProjectName
+                - public-subnet1
+        - Key: Private
+          Value: false
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.9.0/24
+      VpcId:
+        Ref: VPC
+      MapPublicIpOnLaunch: true
+      AvailabilityZone:
+        Fn::Select:
+          - 2
+          - Fn::GetAZs: ap-northeast-2
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - - !Ref ProjectName
+                - public-subnet2
+        - Key: Private
+          Value: false
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.18.0/24
+      VpcId:
+        Ref: VPC
+      MapPublicIpOnLaunch: false
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ap-northeast-2
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - - !Ref ProjectName
+                - private-subnet1
+        - Key: Private
+          Value: true
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.19.0/24
+      VpcId:
+        Ref: VPC
+      MapPublicIpOnLaunch: false
+      AvailabilityZone:
+        Fn::Select:
+          - 2
+          - Fn::GetAZs: ap-northeast-2
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join:
+              - '-'
+              - - !Ref ProjectName
+                - private-subnet2
+        - Key: Private
+          Value: true
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref ProjectName
+
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP1.AllocationId
+      SubnetId: !Ref PublicSubnet1
+
+  NatGatewayEIP1:
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachment
+    Properties:
+      Domain: vpc
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteAttachment1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnetRouteAttachment2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+
+  PrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+
+  PrivateSubnetRouteAttachment1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet1
+
+  PrivateSubnetRouteAttachment2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivateSubnet2
+
+Outputs:
+  VPC:
+    Value: !Ref VPC
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - VPC
+
+  PublicSubnet1:
+    Value: !Ref PublicSubnet1
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - PublicSubnet1
+
+  PublicSubnet2:
+    Value: !Ref PublicSubnet2
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - PublicSubnet2
+
+  PrivateSubnet1:
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - PrivateSubnet1
+
+  PrivateSubnet2:
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - PrivateSubnet2
+
+  NatGatewayEIP1:
+    Value: !Ref NatGatewayEIP1
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - NatGatewayEIP1

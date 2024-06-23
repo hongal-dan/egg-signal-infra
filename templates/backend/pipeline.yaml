@@ -1,0 +1,191 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Backend CI/CD related resources template.
+Parameters:
+  ECSStack:
+    Type: String
+    Description: The name of corresponding ECS stack.
+
+  Owner:
+    Type: String
+    Description: The GitHub organization owning the repository.
+
+  Repo:
+    Type: String
+    Description: The target repository to pull source from.
+
+  Branch:
+    Type: String
+    Description: The branch to pull.
+    AllowedValues:
+      - main
+
+  CloneActionName:
+    Type: String
+    Description: The name of an action in the first stage of Pipeline type resource. It is also used in Webhook type resource.
+    Default: Clone
+
+  CodeStarConnectionArn:
+    Type: String
+    Description: Codestar Connection resource for clone code from GitHub
+
+Resources:
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: IAM Role for CodeBuild
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/IAMFullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Ref AWS::StackName
+      Description: CodeBuild for Fargate
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: ECR_REPOSITORY_URI
+            Type: PLAINTEXT
+            Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}
+          - Name: ECR_LOGIN_URL
+            Type: PLAINTEXT
+            Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec.yml
+      TimeoutInMinutes: 10
+
+  Repository:
+    Type: AWS::ECR::Repository
+
+  CodePipelineArtifactBucket:
+    Type: AWS::S3::Bucket
+
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: IAM Role for CodePipeline
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AWSCodeBuildAdminAccess
+        - arn:aws:iam::aws:policy/AmazonECS_FullAccess
+      Policies:
+        - PolicyName:
+            Fn::Join:
+              - '-'
+              - - !Ref AWS::StackName
+                - codestar
+                - connection
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codestar-connections:UseConnection
+                Resource: '*'
+
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Location: !Ref CodePipelineArtifactBucket
+        Type: S3
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+        - Name: Ingress
+          Actions:
+            - InputArtifacts: [ ]
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: 1
+                Provider: CodeStarSourceConnection
+              OutputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
+              Configuration:
+                ConnectionArn: !Ref CodeStarConnectionArn
+                BranchName: !Ref Branch
+                FullRepositoryId: !Sub ${Owner}/${Repo}
+              Name: !Ref CloneActionName
+        - Name: Build
+          Actions:
+            - Name: BuildDockerImage
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+                PrimarySource: SourceArtifact
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: BuildArtifact
+        - Name: Deploy
+          Actions:
+            - Name: DeployImage
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: ECS
+                Version: '1'
+              RunOrder: 1
+              Configuration:
+                ClusterName:
+                  Fn::ImportValue:
+                    Fn::Join:
+                      - '-'
+                      - - !Ref ECSStack
+                        - Cluster
+                ServiceName:
+                  Fn::ImportValue:
+                    Fn::Join:
+                      - '-'
+                      - - !Ref ECSStack
+                        - ServiceName
+                DeploymentTimeout: "10"
+                FileName: imagedefinitions.json
+              InputArtifacts:
+                - Name: BuildArtifact
+
+Outputs:
+  Pipeline:
+    Value: !Ref CodePipeline
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - Pipeline
