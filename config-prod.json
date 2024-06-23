@@ -5,7 +5,7 @@
     "MaxContainers": "2",
     "SecretsArn": "arn:aws:secretsmanager:ap-northeast-2:801436066220:secret:egg-signal-secrets-p0CZ6U",
     "GitHubOwner": "hongal-dan",
-    "ServerRepository": "egg-signal-serer",
+    "ServerRepository": "egg-signal-server",
     "ServerBranch": "main",
     "CodeStarConnectionArn": "arn:aws:codestar-connections:ap-northeast-2:801436066220:connection/9fdd2e9f-ce31-4dd8-b024-a8ec4f217489",
     "DomainName": "syeong.link",
