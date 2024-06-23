@@ -1,0 +1,201 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Application Load Balancer related resources template.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: The name of the project.
+
+  NetworkStack:
+    Type: String
+    Description: The name of network stack.
+
+  DomainName:
+    Type: String
+    Description: Name of full domain including subdomain.
+
+  CertificateArn:
+    Type: String
+    Description: ARN of the SSL certificate.
+
+  HostedZoneId:
+    Type: String
+    Description: Hosted Zone ID
+
+Resources:
+  ServerLoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the load balancer.
+      GroupName:
+        Fn::Join:
+          - '-'
+          - - !Ref ProjectName
+            - alb
+      VpcId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - VPC
+
+  ServerLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: 30
+      Subnets:
+        - Fn::ImportValue:
+            Fn::Join:
+              - '-'
+              - - !Ref NetworkStack
+                - PublicSubnet1
+        - Fn::ImportValue:
+            Fn::Join:
+              - '-'
+              - - !Ref NetworkStack
+                - PublicSubnet2
+      SecurityGroups:
+        - !Ref ServerLoadBalancerSecurityGroup
+
+  ServerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: private-target-group
+      Port: 3000
+      Protocol: HTTP
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200-209'
+      HealthCheckPort: 3000
+      UnhealthyThresholdCount: 10
+      VpcId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - VPC
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 5
+        - Key: slow_start.duration_seconds
+          Value: 60
+
+  ServerListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: '443'
+            StatusCode: HTTP_301
+      LoadBalancerArn: !Ref ServerLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  ServerListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref ServerTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref ServerLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+
+  ServerContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the ECS hosts that run containers.
+      GroupName:
+        Fn::Join:
+          - '-'
+          - - !Ref ProjectName
+            - container
+      VpcId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref ServerLoadBalancerSecurityGroup
+
+  DNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ServerLoadBalancer.DNSName
+        HostedZoneId: !GetAtt ServerLoadBalancer.CanonicalHostedZoneID
+
+Outputs:
+  ServerListenerHTTP:
+    Value: !Ref ServerListenerHTTP
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - ServerListenerHTTP
+
+  ServerListenerHTTPS:
+    Value: !Ref ServerListenerHTTPS
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - ServerListenerHTTPS
+
+  ServerTargetGroup:
+    Value: !Ref ServerTargetGroup
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - ServerTargetGroup
+
+  ServerContainerSecurityGroup:
+    Value: !Ref ServerContainerSecurityGroup
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - ServerContainerSecurityGroup
+
+  ServerLoadBalancer:
+    Value: !Ref ServerLoadBalancer
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - ServerLoadBalancer
+
+  ServerLoadBalancerSecurityGroup:
+    Value: !Ref ServerLoadBalancerSecurityGroup
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - ServerLoadBalancerSecurityGroup
