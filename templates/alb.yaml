@@ -64,7 +64,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       Name: private-target-group
-      Port: 3000
+      Port: 80
       Protocol: HTTP
       TargetType: ip
       HealthCheckEnabled: true
@@ -75,7 +75,7 @@ Resources:
       HealthyThresholdCount: 2
       Matcher:
         HttpCode: '200-209'
-      HealthCheckPort: 3000
+      HealthCheckPort: 80
       UnhealthyThresholdCount: 10
       VpcId:
         Fn::ImportValue:
@@ -136,8 +136,8 @@ Resources:
               - VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 3000
-          ToPort: 3000
+          FromPort: 80
+          ToPort: 80
           SourceSecurityGroupId: !Ref ServerLoadBalancerSecurityGroup
 
   DNSRecord:
