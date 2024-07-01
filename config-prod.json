@@ -10,6 +10,8 @@
     "CodeStarConnectionArn": "arn:aws:codestar-connections:ap-northeast-2:801436066220:connection/9fdd2e9f-ce31-4dd8-b024-a8ec4f217489",
     "DomainName": "syeong.link",
     "HostedZoneId": "Z0027159365EGORC21IWE",
-    "EnvironmentStage": "prod"
+    "EnvironmentStage": "prod",
+    "WebRepository": "egg-signal-app",
+    "WebBranch": "main"
   }
 }
