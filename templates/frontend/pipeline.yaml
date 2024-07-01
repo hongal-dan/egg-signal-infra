@@ -1,9 +1,12 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Backend CI/CD related resources template.
 Parameters:
-  ECSStack:
+  ServerECSStack:
     Type: String
     Description: The name of corresponding ECS stack.
+
+  WebECSStack:
+    Type: String
 
   Owner:
     Type: String
@@ -167,13 +170,13 @@ Resources:
                   Fn::ImportValue:
                     Fn::Join:
                       - '-'
-                      - - !Ref ECSStack
+                      - - !Ref ServerECSStack
                         - Cluster
                 ServiceName:
                   Fn::ImportValue:
                     Fn::Join:
                       - '-'
-                      - - !Ref ECSStack
+                      - - !Ref WebECSStack
                         - ServiceName
                 DeploymentTimeout: "10"
                 FileName: imagedefinitions.json
