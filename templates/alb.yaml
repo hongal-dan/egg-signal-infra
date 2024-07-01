@@ -283,7 +283,7 @@ Resources:
           ToPort: 80
           SourceSecurityGroupId: !Ref WebLoadBalancerSecurityGroup
 
-  ServerDNSRecord:
+  DNSRecord:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneId: !Ref HostedZoneId
