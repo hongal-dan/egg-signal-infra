@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Stack for Pipeline Notification
 
 Parameters:
-  PipelineStack:
+  ServerPipelineStack:
     Type: String
     Description: The name of corresponding pipeline stack.
 
@@ -15,7 +15,7 @@ Parameters:
 
 Resources:
   # codepipeline -> topic
-  Notification:
+  ServerNotification:
     Type: AWS::CodeStarNotifications::NotificationRule
     Properties:
       Name: !Ref NotificationName
@@ -30,11 +30,11 @@ Resources:
             - Fn::ImportValue:
                 Fn::Join:
                   - '-'
-                  - - !Ref PipelineStack
+                  - - !Ref ServerPipelineStack
                     - Pipeline
       Targets:
         - TargetType: SNS
-          TargetAddress: !Ref Topic
+          TargetAddress: !Ref ServerTopic
       DetailType: FULL
       EventTypeIds:
         - codepipeline-pipeline-pipeline-execution-failed
@@ -47,7 +47,7 @@ Resources:
 
   # topic -> lambda
   # https://repost.aws/questions/QURfs4EsYyROihznG3pfx-xA/cloudformation-connect-lambda-to-an-exisitng-sns-topic
-  Topic:
+  ServerTopic:
     Type: AWS::SNS::Topic
     Properties:
       Subscription:
@@ -59,20 +59,20 @@ Resources:
                   - ServerPipelineAlertLambdaArn
           Protocol: lambda
 
-  TopicPolicy:
+  ServerTopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
       Topics:
-        - !Ref Topic
+        - !Ref ServerTopic
       PolicyDocument:
         Statement:
           - Action: SNS:Publish
             Effect: Allow
-            Resource: !Ref Topic
+            Resource: !Ref ServerTopic
             Principal:
               Service: codestar-notifications.amazonaws.com
 
-  LambdaPermission:
+  ServerLambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
@@ -83,4 +83,4 @@ Resources:
             - - !Ref LambdaStack
               - ServerPipelineAlertLambdaArn
       Principal: sns.amazonaws.com
-      SourceArn: !Ref Topic
+      SourceArn: !Ref ServerTopic
