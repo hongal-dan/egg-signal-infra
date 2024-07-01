@@ -10,17 +10,23 @@ Parameters:
     Type: String
     Description: The name of network stack.
 
-  DomainName:
+  ServerDomainName:
     Type: String
     Description: Name of full domain including subdomain.
 
-  CertificateStack:
+  ServerCertificateStack:
     Type: String
     Description: ARN of the SSL certificate.
 
   HostedZoneId:
     Type: String
     Description: Hosted Zone ID
+
+  WebDomainName:
+    Type: String
+
+  WebCertificateStack:
+    Type: String
 
 Resources:
   ServerLoadBalancerSecurityGroup:
@@ -48,7 +54,54 @@ Resources:
           ToPort: 443
           CidrIp: 0.0.0.0/0
 
+  WebLoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the load balancer.
+      GroupName:
+        Fn::Join:
+          - '-'
+          - - !Ref ProjectName
+            - app
+            - alb
+      VpcId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
   ServerLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: 30
+      Subnets:
+        - Fn::ImportValue:
+            Fn::Join:
+              - '-'
+              - - !Ref NetworkStack
+                - PublicSubnet1
+        - Fn::ImportValue:
+            Fn::Join:
+              - '-'
+              - - !Ref NetworkStack
+                - PublicSubnet2
+      SecurityGroups:
+        - !Ref ServerLoadBalancerSecurityGroup
+
+  WebLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Scheme: internet-facing
@@ -98,6 +151,35 @@ Resources:
         - Key: slow_start.duration_seconds
           Value: 60
 
+  WebTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: app-target-group
+      Port: 80
+      Protocol: HTTP
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200-209'
+      HealthCheckPort: 80
+      UnhealthyThresholdCount: 10
+      VpcId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - VPC
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 5
+        - Key: slow_start.duration_seconds
+          Value: 60
+
   ServerListenerHTTP:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -108,6 +190,19 @@ Resources:
             Port: '443'
             StatusCode: HTTP_301
       LoadBalancerArn: !Ref ServerLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  WebListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: '443'
+            StatusCode: HTTP_301
+      LoadBalancerArn: !Ref WebLoadBalancer
       Port: 80
       Protocol: HTTP
 
@@ -125,7 +220,24 @@ Resources:
             Fn::ImportValue:
               Fn::Join:
                 - '-'
-                - - !Ref CertificateStack
+                - - !Ref ServerCertificateStack
+                  - CertificateArn
+
+  WebListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref WebTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref WebLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref WebCertificateStack
                   - CertificateArn
 
   ServerContainerSecurityGroup:
@@ -149,15 +261,47 @@ Resources:
           ToPort: 80
           SourceSecurityGroupId: !Ref ServerLoadBalancerSecurityGroup
 
-  DNSRecord:
+  WebContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the ECS hosts that run containers.
+      GroupName:
+        Fn::Join:
+          - '-'
+          - - !Ref ProjectName
+            - app
+            - container
+      VpcId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref WebLoadBalancerSecurityGroup
+
+  ServerDNSRecord:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneId: !Ref HostedZoneId
-      Name: !Ref DomainName
+      Name: !Ref ServerDomainName
       Type: A
       AliasTarget:
         DNSName: !GetAtt ServerLoadBalancer.DNSName
         HostedZoneId: !GetAtt ServerLoadBalancer.CanonicalHostedZoneID
+
+  WebDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref WebDomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt WebLoadBalancer.DNSName
+        HostedZoneId: !GetAtt WebLoadBalancer.CanonicalHostedZoneID
 
 Outputs:
   ServerListenerHTTP:
@@ -213,3 +357,57 @@ Outputs:
           - '-'
           - - !Ref AWS::StackName
             - ServerLoadBalancerSecurityGroup
+
+  WebListenerHTTP:
+    Value: !Ref WebListenerHTTP
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - WebListenerHTTP
+
+  WebListenerHTTPS:
+    Value: !Ref WebListenerHTTPS
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - WebListenerHTTPS
+
+  WebTargetGroup:
+    Value: !Ref WebTargetGroup
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - WebTargetGroup
+
+  WebContainerSecurityGroup:
+    Value: !Ref WebContainerSecurityGroup
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - WebContainerSecurityGroup
+
+  WebLoadBalancer:
+    Value: !Ref WebLoadBalancer
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - WebLoadBalancer
+
+  WebLoadBalancerSecurityGroup:
+    Value: !Ref WebLoadBalancerSecurityGroup
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - WebLoadBalancerSecurityGroup
