@@ -127,10 +127,18 @@ Resources:
       Parameters:
         PipelineStack: !Select [ 1, !Split [ '/', !Ref ServerPipelineStack ] ]
         LambdaStack: !Select [ 1, !Split [ '/', !Ref LambdaStack ] ]
-        NotificationName:
+        ServerNotificationName:
           Fn::Join:
             - ''
             - - egg-signal-server
+              - Fn::FindInMap:
+                  - SubdomainSuffixMap
+                  - !Ref EnvironmentStage
+                  - value
+        WebNotificationName:
+          Fn::Join:
+            - ''
+            - - egg-signal-app
               - Fn::FindInMap:
                   - SubdomainSuffixMap
                   - !Ref EnvironmentStage

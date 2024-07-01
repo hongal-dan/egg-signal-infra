@@ -6,11 +6,17 @@ Parameters:
     Type: String
     Description: The name of corresponding pipeline stack.
 
+  WebPipelineStack:
+    Type: String
+
   LambdaStack:
     Type: String
     Description: Pipeline Lambda stack
 
-  NotificationName:
+  ServerNotificationName:
+    Type: String
+
+  WebNotificationName:
     Type: String
 
 Resources:
@@ -18,7 +24,7 @@ Resources:
   ServerNotification:
     Type: AWS::CodeStarNotifications::NotificationRule
     Properties:
-      Name: !Ref NotificationName
+      Name: !Ref ServerNotificationName
       Resource:
         Fn::Join:
           - ':'
@@ -84,3 +90,73 @@ Resources:
               - ServerPipelineAlertLambdaArn
       Principal: sns.amazonaws.com
       SourceArn: !Ref ServerTopic
+
+  WebNotification:
+    Type: AWS::CodeStarNotifications::NotificationRule
+    Properties:
+      Name: !Ref WebNotificationName
+      Resource:
+        Fn::Join:
+          - ':'
+          - - arn
+            - !Ref AWS::Partition
+            - codepipeline
+            - !Ref AWS::Region
+            - !Ref AWS::AccountId
+            - Fn::ImportValue:
+                Fn::Join:
+                  - '-'
+                  - - !Ref WebPipelineStack
+                    - Pipeline
+      Targets:
+        - TargetType: SNS
+          TargetAddress: !Ref WebTopic
+      DetailType: FULL
+      EventTypeIds:
+        - codepipeline-pipeline-pipeline-execution-failed
+        - codepipeline-pipeline-pipeline-execution-canceled
+        - codepipeline-pipeline-pipeline-execution-started
+        - codepipeline-pipeline-pipeline-execution-resumed
+        - codepipeline-pipeline-pipeline-execution-succeeded
+        - codepipeline-pipeline-pipeline-execution-superseded
+        - codepipeline-pipeline-manual-approval-needed
+
+  # topic -> lambda
+  # https://repost.aws/questions/QURfs4EsYyROihznG3pfx-xA/cloudformation-connect-lambda-to-an-exisitng-sns-topic
+  WebTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref LambdaStack
+                  - WebPipelineAlertLambdaArn
+          Protocol: lambda
+
+  WebTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref WebTopic
+      PolicyDocument:
+        Statement:
+          - Action: SNS:Publish
+            Effect: Allow
+            Resource: !Ref WebTopic
+            Principal:
+              Service: codestar-notifications.amazonaws.com
+
+  WebLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref LambdaStack
+              - WebPipelineAlertLambdaArn
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref WebTopic
