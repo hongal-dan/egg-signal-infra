@@ -269,4 +269,4 @@ Outputs:
         Fn::Join:
           - '-'
           - - !Ref AWS::StackName
-            - WebServiceName
+            - ServiceName
