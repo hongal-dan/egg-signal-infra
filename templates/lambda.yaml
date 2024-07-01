@@ -15,7 +15,7 @@ Parameters:
     Type: String
 
 Resources:
-  PipelineAlertLambdaRole:
+  ServerPipelineAlertLambdaRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -29,7 +29,7 @@ Resources:
               - sts:AssumeRole
       Path: /
       Policies:
-        - PolicyName: PipelineAlertLambdaPolicy
+        - PolicyName: ServerPipelineAlertLambdaPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -96,7 +96,7 @@ Resources:
               }
             };  
 
-      Role: !GetAtt [ PipelineAlertLambdaRole, Arn ]
+      Role: !GetAtt [ ServerPipelineAlertLambdaRole, Arn ]
       Environment:
         Variables:
           ENVIRONMENT_STAGE: !Ref EnvironmentStage
