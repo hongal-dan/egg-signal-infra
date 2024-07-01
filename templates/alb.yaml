@@ -120,7 +120,7 @@ Resources:
               - - !Ref NetworkStack
                 - PublicSubnet2
       SecurityGroups:
-        - !Ref ServerLoadBalancerSecurityGroup
+        - !Ref WebLoadBalancerSecurityGroup
 
   ServerTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
