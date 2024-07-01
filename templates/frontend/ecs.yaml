@@ -118,12 +118,12 @@ Resources:
                 Fn::Join:
                   - '-'
                   - - !Ref NetworkStack
-                    - PublicSubnet1
+                    - PrivateSubnet1
             - Fn::ImportValue:
                 Fn::Join:
                   - '-'
                   - - !Ref NetworkStack
-                    - PublicSubnet2
+                    - PrivateSubnet2
           SecurityGroups:
             - Fn::ImportValue:
                 Fn::Join:
