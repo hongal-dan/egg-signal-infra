@@ -98,7 +98,7 @@ Resources:
         WebCertificateStack: !Select [ 1, !Split [ "/", !Ref WebCertificate ] ]
         HostedZoneId: !Ref HostedZoneId
 
-  ServerECSStack:
+  ECSStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/ecs.yaml
@@ -114,18 +114,19 @@ Resources:
       TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/pipeline.yaml
       TimeoutInMinutes: 20
       Parameters:
-        ECSStack: !Select [ 1, !Split [ '/', !Ref ServerECSStack ] ]
+        ECSStack: !Select [ 1, !Split [ '/', !Ref ECSStack ] ]
         Owner: !Ref GitHubOwner
         Repo: !Ref ServerRepository
         Branch: !Ref ServerBranch
         CodeStarConnectionArn: !Ref CodeStarConnectionArn
 
-  ServerNotification:
+  Notification:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/notifications/pipelineNotification.yaml
       Parameters:
         PipelineStack: !Select [ 1, !Split [ '/', !Ref ServerPipelineStack ] ]
+        WebPipelineStack: !Select [ 1, !Split [ '/', !Ref WebPipelineStack ] ]
         LambdaStack: !Select [ 1, !Split [ '/', !Ref LambdaStack ] ]
         ServerNotificationName:
           Fn::Join:
@@ -182,7 +183,7 @@ Resources:
         ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
         MaxContainers: !Ref MaxContainers
         SecretsArn: !Ref SecretsArn
-        ServerECSStack: !Select [ 1, !Split [ "/", !Ref ServerECSStack ] ]
+        ServerECSStack: !Select [ 1, !Split [ "/", !Ref ECSStack ] ]
 
   WebPipelineStack:
     Type: AWS::CloudFormation::Stack

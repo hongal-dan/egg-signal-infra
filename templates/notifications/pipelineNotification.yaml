@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Stack for Pipeline Notification
 
 Parameters:
-  ServerPipelineStack:
+  PipelineStack:
     Type: String
     Description: The name of corresponding pipeline stack.
 
