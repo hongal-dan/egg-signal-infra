@@ -125,7 +125,7 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/notifications/pipelineNotification.yaml
       Parameters:
-        PipelineStack: !Select [ 1, !Split [ '/', !Ref ServerPipelineStack ] ]
+        ServerPipelineStack: !Select [ 1, !Split [ '/', !Ref ServerPipelineStack ] ]
         WebPipelineStack: !Select [ 1, !Split [ '/', !Ref WebPipelineStack ] ]
         LambdaStack: !Select [ 1, !Split [ '/', !Ref LambdaStack ] ]
         ServerNotificationName:
