@@ -21,7 +21,7 @@ Parameters:
 
 Resources:
   # codepipeline -> topic
-  ServerNotification:
+  Notification:
     Type: AWS::CodeStarNotifications::NotificationRule
     Properties:
       Name: !Ref ServerNotificationName
@@ -36,11 +36,11 @@ Resources:
             - Fn::ImportValue:
                 Fn::Join:
                   - '-'
-                  - - !Ref ServerPipelineStack
+                  - - !Ref PipelineStack
                     - Pipeline
       Targets:
         - TargetType: SNS
-          TargetAddress: !Ref ServerTopic
+          TargetAddress: !Ref Topic
       DetailType: FULL
       EventTypeIds:
         - codepipeline-pipeline-pipeline-execution-failed
@@ -53,7 +53,7 @@ Resources:
 
   # topic -> lambda
   # https://repost.aws/questions/QURfs4EsYyROihznG3pfx-xA/cloudformation-connect-lambda-to-an-exisitng-sns-topic
-  ServerTopic:
+  Topic:
     Type: AWS::SNS::Topic
     Properties:
       Subscription:
@@ -65,20 +65,20 @@ Resources:
                   - ServerPipelineAlertLambdaArn
           Protocol: lambda
 
-  ServerTopicPolicy:
+  TopicPolicy:
     Type: AWS::SNS::TopicPolicy
     Properties:
       Topics:
-        - !Ref ServerTopic
+        - !Ref Topic
       PolicyDocument:
         Statement:
           - Action: SNS:Publish
             Effect: Allow
-            Resource: !Ref ServerTopic
+            Resource: !Ref Topic
             Principal:
               Service: codestar-notifications.amazonaws.com
 
-  ServerLambdaPermission:
+  LambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
@@ -89,7 +89,7 @@ Resources:
             - - !Ref LambdaStack
               - ServerPipelineAlertLambdaArn
       Principal: sns.amazonaws.com
-      SourceArn: !Ref ServerTopic
+      SourceArn: !Ref Topic
 
   WebNotification:
     Type: AWS::CodeStarNotifications::NotificationRule
