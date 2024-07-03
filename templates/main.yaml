@@ -251,7 +251,6 @@ Resources:
         KeyName: !Ref EC2KeyName
         NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
         ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
-        ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
 
 Mappings:
   SubdomainSuffixMap:
