@@ -90,20 +90,30 @@ Resources:
           Fn::Base64: |
             #!/bin/bash
             apt update -y
-            apt install -y docker
-            service docker start
-            usermod -a -G docker ec2-user
-            curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-            chmod +x /usr/local/bin/docker-compose
-            mkdir /opt/openvidu
+            apt-get install -y ca-certificates curl
+            install -m 0755 -d /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+            chmod a+r /etc/apt/keyrings/docker.asc
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+            apt-get update -y
+            apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            cd /opt
+            curl https://s3-eu-west-1.amazonaws.com/aws.openvidu.io/install_openvidu_latest.sh -o install_openvidu_latest.sh
+            bash install_openvidu_latest.sh &
+            PID=$!
+            sleep 40
+            if ps -p $PID > /dev/null; then
+            echo "OpenVidu installation script timed out."
+            kill $PID
+            exit 1
+            fi
             cd /opt/openvidu
-            curl https://s3-eu-west-1.amazonaws.com/aws.openvidu.io/install_openvidu_latest.sh | bash
-            cd openvidu
             sed -i 's/DOMAIN_OR_PUBLIC_IP=/DOMAIN_OR_PUBLIC_IP=openvidu2.syeong.link/g' .env
             sed -i 's/OPENVIDU_SECRET=/OPENVIDU_SECRET=hongaldan/g' .env
-            sed -i 's/CERTIFICATE_TYPE=selfsigned/CERTIFICATE_TYPE=letsencrypt/g' .env
-            sed -i 's/LETSENCRYPT_EMAIL=user@example.com/LETSENCRYPT_EMAIL=visioner2168@gmail.com/g' .env
+            sed -i 's/CERTIFICATE=/CERTIFICATE=letsencrypt/g' .env
+            sed -i 's/LETSENCRYPT_EMAIL=/LETSENCRYPT_EMAIL=visioner2168@gmial.com/g' .env
             ./openvidu start
+
 
   OpenviduASG:
     Type: AWS::AutoScaling::AutoScalingGroup
