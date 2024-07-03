@@ -400,6 +400,23 @@ Resources:
         DNSName: !GetAtt OpenviduALB.DNSName
         HostedZoneId: !GetAtt OpenviduALB.CanonicalHostedZoneID
 
+  OpenviduListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref OpenviduTargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref OpenviduALB
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref ServerCertificateStack
+                  - OpenviduCertificateArn
+
 Outputs:
   ServerListenerHTTP:
     Value: !Ref ServerListenerHTTP

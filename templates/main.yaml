@@ -176,6 +176,17 @@ Resources:
                         - !Ref EnvironmentStage
                         - value
               - !Ref DomainName
+        OpenviduDomainName:
+          Fn::Join:
+            - '.'
+            - - Fn::Join:
+                  - ''
+                  - - openvidu
+                    - Fn::FindInMap:
+                        - SubdomainSuffixMap
+                        - !Ref EnvironmentStage
+                        - value
+              - !Ref DomainName
         HostedZoneId: !Ref HostedZoneId
 
   LambdaStack:
@@ -239,6 +250,7 @@ Resources:
       Parameters:
         KeyName: !Ref EC2KeyName
         NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
+        ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
         ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
 
 Mappings:
