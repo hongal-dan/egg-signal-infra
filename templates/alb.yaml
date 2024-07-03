@@ -564,3 +564,12 @@ Outputs:
           - '-'
           - - !Ref AWS::StackName
             - OpenviduTargetGroup
+
+  OpenviduTargetGroupHTTPS:
+    Value: !Ref OpenviduTargetGroupHTTPS
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - OpenviduTargetGroupHTTPS

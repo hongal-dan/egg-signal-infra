@@ -141,3 +141,8 @@ Resources:
               - '-'
               - - !Ref ALBStack
                 - OpenviduTargetGroup
+        - Fn::ImportValue:
+            Fn::Join:
+              - '-'
+              - - !Ref ALBStack
+                - OpenviduTargetGroupHTTPS
