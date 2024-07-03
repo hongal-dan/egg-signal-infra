@@ -99,8 +99,10 @@ Resources:
             cd /opt/openvidu
             curl https://s3-eu-west-1.amazonaws.com/aws.openvidu.io/install_openvidu_latest.sh | bash
             cd openvidu
-            sed -i 's/DOMAIN_OR_PUBLIC_IP=/DOMAIN_OR_PUBLIC_IP='$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)'/g' .env
-            sed -i 's/OPENVIDU_SECRET=/OPENVIDU_SECRET=MY_SECRET/g' .env
+            sed -i 's/DOMAIN_OR_PUBLIC_IP=/DOMAIN_OR_PUBLIC_IP=openvidu2.syeong.link/g' .env
+            sed -i 's/OPENVIDU_SECRET=/OPENVIDU_SECRET=hongaldan/g' .env
+            sed -i 's/CERTIFICATE_TYPE=selfsigned/CERTIFICATE_TYPE=letsencrypt/g' .env
+            sed -i 's/LETSENCRYPT_EMAIL=user@example.com/LETSENCRYPT_EMAIL=visioner2168@gmail.com/g' .env
             ./openvidu start
 
   OpenviduASG:
