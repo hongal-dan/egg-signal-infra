@@ -378,7 +378,7 @@ Resources:
       HealthyThresholdCount: 5
       UnhealthyThresholdCount: 2
       Matcher:
-        HttpCode: 200
+        HttpCode: 200-399
 
   OpenviduListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
