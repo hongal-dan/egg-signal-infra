@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  KeyName:
+    Type: String
+
+  NetworkStack:
+    Type: String
+
+  ALBStack:
+    Type: String
+
+Resources:
+  OpenviduSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Openvidu security group
+      VpcId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref ALBStack
+                  - OpenviduAlbSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref ALBStack
+                  - OpenviduAlbSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref ALBStack
+                  - OpenviduAlbSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 3478
+          ToPort: 3478
+          SourceSecurityGroupId:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref ALBStack
+                  - OpenviduAlbSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 40000
+          ToPort: 65535
+          SourceSecurityGroupId:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref ALBStack
+                  - OpenviduAlbSecurityGroup
+        - IpProtocol: udp
+          FromPort: 3478
+          ToPort: 65535
+          SourceSecurityGroupId:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref ALBStack
+                  - OpenviduAlbSecurityGroup
+
+  OpenviduLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        InstanceType: t3.large
+        KeyName: !Ref KeyName
+        ImageId: ami-0e6f2b2fa0ca704d0
+        SecurityGroupIds:
+          - !Ref OpenviduSecurityGroup
+        Userdata:
+          Fn::Base64: |
+            #!/bin/bash
+            yum update -y
+            yum install -y docker
+            service docker start
+            usermod -a -G docker ec2-user
+            curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+            mkdir /opt/openvidu
+            cd /opt/openvidu
+            curl https://s3-eu-west-1.amazonaws.com/aws.openvidu.io/install_openvidu_latest.sh | bash
+            cd openvidu
+            sed -i 's/DOMAIN_OR_PUBLIC_IP=/DOMAIN_OR_PUBLIC_IP='$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)'/g' .env
+            sed -i 's/OPENVIDU_SECRET=/OPENVIDU_SECRET=MY_SECRET/g' .env
+            ./openvidu start
+
+  OpenviduASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - Fn::ImportValue:
+            Fn::Join:
+              - '-'
+              - - !Ref NetworkStack
+                - PrivateSubnet1
+        - Fn::ImportValue:
+            Fn::Join:
+              - '-'
+              - - !Ref NetworkStack
+                - PrivateSubnet2
+      LaunchTemplate:
+        LaunchTemplateId: !Ref OpenviduLaunchTemplate
+        Version: 1
+      MinSize: '1'
+      MaxSize: "10"
+      DesiredCapacity: '1'
+      TargetGroupARNs:
+        - Fn::ImportValue:
+            Fn::Join:
+              - '-'
+              - - !Ref ALBStack
+                - OpenviduTargetGroup
