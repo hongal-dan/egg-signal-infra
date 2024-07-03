@@ -12,6 +12,7 @@
     "HostedZoneId": "Z0027159365EGORC21IWE",
     "EnvironmentStage": "prod",
     "WebRepository": "egg-signal-app",
-    "WebBranch": "main"
+    "WebBranch": "main",
+    "EC2KeyName": "clion"
   }
 }

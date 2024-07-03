@@ -53,6 +53,9 @@ Parameters:
     AllowedValues:
       - prod
 
+  EC2KeyName:
+    Type: String
+
 Resources:
   NetworkStack:
     Type: AWS::CloudFormation::Stack
@@ -227,6 +230,16 @@ Resources:
                         - value
               - !Ref DomainName
         HostedZoneId: !Ref HostedZoneId
+
+  OpenviduStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/openvidu.yaml
+      TimeoutInMinutes: 20
+      Parameters:
+        KeyName: !Ref EC2KeyName
+        NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
+        ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
 
 Mappings:
   SubdomainSuffixMap:
