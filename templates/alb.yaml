@@ -28,6 +28,9 @@ Parameters:
   WebCertificateStack:
     Type: String
 
+  OpenviduDomainName:
+    Type: String
+
 Resources:
   ServerLoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -386,6 +389,16 @@ Resources:
       LoadBalancerArn: !Ref OpenviduALB
       Port: 80
       Protocol: HTTP
+
+  OpenviduDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref OpenviduDomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt OpenviduALB.DNSName
+        HostedZoneId: !GetAtt OpenviduALB.CanonicalHostedZoneID
 
 Outputs:
   ServerListenerHTTP:

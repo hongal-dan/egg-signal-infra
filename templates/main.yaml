@@ -94,6 +94,17 @@ Resources:
                         - !Ref EnvironmentStage
                         - value
               - !Ref DomainName
+        OpenviduDomainName:
+          Fn::Join:
+            - '.'
+            - - Fn::Join:
+                  - ''
+                  - - openvidu2
+                    - Fn::FindInMap:
+                        - SubdomainSuffixMap
+                        - !Ref EnvironmentStage
+                        - value
+              - !Ref DomainName
         ServerCertificateStack: !Select [ 1, !Split [ "/", !Ref APICertificate ] ]
         WebCertificateStack: !Select [ 1, !Split [ "/", !Ref WebCertificate ] ]
         HostedZoneId: !Ref HostedZoneId
