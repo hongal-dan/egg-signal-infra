@@ -404,7 +404,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-        - TargetGroupArn: !Ref OpenviduTargetGroup
+        - TargetGroupArn: !Ref OpenviduTargetGroupHTTPS
           Type: forward
       LoadBalancerArn: !Ref OpenviduALB
       Port: 443
@@ -416,6 +416,27 @@ Resources:
                 - '-'
                 - - !Ref ServerCertificateStack
                   - OpenviduCertificateArn
+
+  OpenviduTargetGroupHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - VPC
+      Port: 443
+      Protocol: HTTPS
+      TargetType: instance
+      HealthCheckIntervalSeconds: 30
+      HealthCheckProtocol: HTTPS
+      HealthCheckPath: /
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200-299
 
 Outputs:
   ServerListenerHTTP:
