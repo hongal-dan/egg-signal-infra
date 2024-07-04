@@ -102,6 +102,7 @@ Resources:
             - '-'
             - - !Ref NetworkStack
               - PublicSubnet1
+    DependsOn: OpenviduDNSRecord
 
   OpenviduDNSRecord:
     Type: AWS::Route53::RecordSet
