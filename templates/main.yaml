@@ -242,14 +242,14 @@ Resources:
               - !Ref DomainName
         HostedZoneId: !Ref HostedZoneId
 
-  OpenviduStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/openvidu.yaml
-      TimeoutInMinutes: 20
-      Parameters:
-        KeyName: !Ref EC2KeyName
-        NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
+#  OpenviduStack:
+#    Type: AWS::CloudFormation::Stack
+#    Properties:
+#      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/openvidu.yaml
+#      TimeoutInMinutes: 20
+#      Parameters:
+#        KeyName: !Ref EC2KeyName
+#        NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
 
 Mappings:
   SubdomainSuffixMap:
