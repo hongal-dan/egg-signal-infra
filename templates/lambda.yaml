@@ -190,7 +190,7 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT_STAGE: !Ref EnvironmentStage
-          SERVER_PIPELINE_WEBHOOK:
+          WEB_PIPELINE_WEBHOOK:
             Fn::Sub:
               - '{{resolve:secretsmanager:${SecretsArn}:SecretString:WEB_PIPELINE_WEBHOOK}}'
               - SecretName: !Ref SecretsArn
