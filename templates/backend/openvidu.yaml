@@ -96,6 +96,12 @@ Resources:
       Tags:
         - Key: Name
           Value: InitialOpenviduInstance
+      SubnetId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - PublicSubnet1
 
   OpenviduDNSRecord:
     Type: AWS::Route53::RecordSet
