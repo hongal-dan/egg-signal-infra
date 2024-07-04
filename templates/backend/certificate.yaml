@@ -22,15 +22,6 @@ Resources:
           HostedZoneId: !Ref HostedZoneId
       ValidationMethod: DNS
 
-  OpenviduCertificate:
-    Type: AWS::CertificateManager::Certificate
-    Properties:
-      DomainName: !Ref OpenviduDomainName
-      DomainValidationOptions:
-        - DomainName: !Ref OpenviduDomainName
-          HostedZoneId: !Ref HostedZoneId
-      ValidationMethod: DNS
-
 Outputs:
   CertificateArn:
     Description: ARN of Certificate.
@@ -41,13 +32,3 @@ Outputs:
           - '-'
           - - !Ref AWS::StackName
             - CertificateArn
-
-  OpenviduCertificateArn:
-    Description: ARN of Certificate.
-    Value: !Ref OpenviduCertificate
-    Export:
-      Name:
-        Fn::Join:
-          - '-'
-          - - !Ref AWS::StackName
-            - OpenviduCertificateArn
