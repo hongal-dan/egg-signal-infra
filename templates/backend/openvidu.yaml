@@ -7,6 +7,12 @@ Parameters:
   NetworkStack:
     Type: String
 
+  HostedZoneId:
+    Type: String
+
+  OpenviduDomainName:
+    Type: String
+
 Resources:
   OpenviduSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -81,6 +87,25 @@ Resources:
             sed -i 's/LETSENCRYPT_EMAIL=/LETSENCRYPT_EMAIL=visioner2168@gmial.com/g' .env
             ./openvidu start
 
+  InitialOpenviduInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref OpenviduLaunchTemplate
+        Version: 1
+      Tags:
+        - Key: Name
+          Value: InitialOpenviduInstance
+
+  OpenviduDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref OpenviduDomainName
+      Type: A
+      ResourceRecords:
+        - !GetAtt InitialOpenviduInstance.PublicIp
+      TTL: '60'
 
   OpenviduASG:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -99,6 +124,6 @@ Resources:
       LaunchTemplate:
         LaunchTemplateId: !Ref OpenviduLaunchTemplate
         Version: 1
-      MinSize: '1'
+      MinSize: '0'
       MaxSize: "10"
-      DesiredCapacity: '1'
+      DesiredCapacity: '0'
