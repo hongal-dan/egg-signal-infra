@@ -74,7 +74,7 @@ Resources:
             curl https://s3-eu-west-1.amazonaws.com/aws.openvidu.io/install_openvidu_latest.sh -o install_openvidu_latest.sh
             bash install_openvidu_latest.sh &
             PID=$!
-            sleep 40
+            sleep 200
             if ps -p $PID > /dev/null; then
             echo "OpenVidu installation script timed out."
             kill $PID
@@ -102,7 +102,6 @@ Resources:
             - '-'
             - - !Ref NetworkStack
               - PublicSubnet1
-    DependsOn: OpenviduDNSRecord
 
   OpenviduDNSRecord:
     Type: AWS::Route53::RecordSet
