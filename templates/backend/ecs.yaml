@@ -97,6 +97,11 @@ Resources:
                 !Sub
                 - '${SecretsArn}:OPENVIDU_SECRET::'
                 - { SecretsArn: !Ref SecretsArn }
+            - Name: NODE_ENV
+              ValueFrom:
+                !Sub
+                - '${SecretsArn}:NODE_ENV::'
+                - { SecretsArn: !Ref SecretsArn }
 
   Service:
     Type: AWS::ECS::Service
