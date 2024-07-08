@@ -81,7 +81,11 @@ Resources:
             Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
           - Name: NEXT_PUBLIC_API_SERVER
             Type: PLAINTEXT
-            Value: !Ref ServerDomain
+            Value:
+              Fn::Join:
+                - ''
+                - - https://
+                  - !Ref ServerDomain
           - Name: JWT_SECRET
             Type: SECRETS_MANAGER
             Value:
