@@ -76,17 +76,17 @@ Resources:
             - ContainerPort: 80
               HostPort: 80
               Protocol: tcp
-          Secrets:
-            - Name: NEXT_PUBLIC_API_SERVER
-              ValueFrom:
-                !Sub
-                - '${SecretsArn}:NEXT_PUBLIC_API_SERVER::'
-                - { SecretsArn: !Ref SecretsArn }
-            - Name: JWT_SECRET
-              ValueFrom:
-                !Sub
-                - '${SecretsArn}:JWT_SECRET::'
-                - { SecretsArn: !Ref SecretsArn }
+#          Secrets:
+#            - Name: NEXT_PUBLIC_API_SERVER
+#              ValueFrom:
+#                !Sub
+#                - '${SecretsArn}:NEXT_PUBLIC_API_SERVER::'
+#                - { SecretsArn: !Ref SecretsArn }
+#            - Name: JWT_SECRET
+#              ValueFrom:
+#                !Sub
+#                - '${SecretsArn}:JWT_SECRET::'
+#                - { SecretsArn: !Ref SecretsArn }
 
   Service:
     Type: AWS::ECS::Service

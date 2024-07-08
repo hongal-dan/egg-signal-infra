@@ -222,6 +222,18 @@ Resources:
         Repo: !Ref WebRepository
         Branch: !Ref WebBranch
         CodeStarConnectionArn: !Ref CodeStarConnectionArn
+        ServerDomain:
+          Fn::Join:
+            - '.'
+            - - Fn::Join:
+                  - ''
+                  - - egg-signal-server
+                    - Fn::FindInMap:
+                        - SubdomainSuffixMap
+                        - !Ref EnvironmentStage
+                        - value
+              - !Ref DomainName
+        SecretsArn: !Ref SecretsArn
 
   WebCertificate:
     Type: AWS::CloudFormation::Stack

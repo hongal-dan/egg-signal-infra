@@ -22,6 +22,12 @@ Parameters:
     AllowedValues:
       - main
 
+  ServerDomain:
+    Type: String
+
+  SecretsArn:
+    Type: String
+
   CloneActionName:
     Type: String
     Description: The name of an action in the first stage of Pipeline type resource. It is also used in Webhook type resource.
@@ -72,6 +78,16 @@ Resources:
           - Name: ECR_LOGIN_URL
             Type: PLAINTEXT
             Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+          - Name: NEXT_PUBLIC_API_SERVER
+            Type: PLAINTEXT
+            Value: !Ref ServerDomain
+          - Name: JWT_SECRET
+            Type: SECRETS_MANAGER
+            Value:
+              Fn::Join:
+                - ':'
+                - - !Ref SecretsArn
+                  - JWT_SECRET
       Source:
         Type: CODEPIPELINE
         BuildSpec: buildspec.yml
