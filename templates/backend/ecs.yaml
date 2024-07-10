@@ -76,6 +76,11 @@ Resources:
             - ContainerPort: 80
               HostPort: 80
               Protocol: tcp
+          Environment:
+            - Name: REDIS_HOST
+              Value: "redis"
+            - Name: REDIS_PORT
+              Value: "6379"
           Secrets:
             - Name: MONGODB_URI
               ValueFrom:
