@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ECS related resources template
+
+Parameters:
+  NetworkStack:
+    Type: String
+
+  ProjectName:
+    Type: String
+
+Resources:
+  # https://repost.aws/knowledge-center/cloudformation-ecs-service-discovery
+  PrivateNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Name: !Ref ProjectName
+      Vpc:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - VPC
+
+Outputs:
+  NamespaceId:
+    Value: !Ref PrivateNamespace
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - NamespaceId

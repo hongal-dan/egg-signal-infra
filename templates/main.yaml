@@ -283,6 +283,15 @@ Resources:
                         - value
               - !Ref DomainName
 
+  NamespaceStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/namespace.yaml
+      TimeoutInMinutes: 20
+      Parameters:
+        NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
+        ProjectName: !Ref ProjectName
+
 Mappings:
   SubdomainSuffixMap:
     prod:
