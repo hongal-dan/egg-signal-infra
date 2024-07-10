@@ -1,0 +1,163 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ECS related resources template
+
+Parameters:
+  NetworkStack:
+    Type: String
+    Description: The name of network stack.
+    Default: network
+
+  ALBStack:
+    Type: String
+    Description: The name of Application Load Balancer stack.
+    Default: alb
+
+  ECSClusterStack:
+    Type: String
+
+  ProjectName:
+    Type: String
+
+  NamespaceStack:
+    Type: String
+
+Resources:
+  DiscoveryService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        RoutingPolicy: MULTIVALUE
+        DnsRecords:
+          - TTL: 60
+            Type: A
+          - TTL: 60
+            Type: SRV
+      Name: redis
+      NamespaceId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NamespaceStack
+              - NamespaceId
+
+  TaskDefinitionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+
+  TaskDefinitionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+                - ecs.amazonaws.com
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/AmazonECS_FullAccess
+        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: 512
+      Memory: 1024
+      ExecutionRoleArn: !GetAtt TaskDefinitionRole.Arn
+      TaskRoleArn: !GetAtt TaskDefinitionRole.Arn
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: redis-container
+          Essential: true
+          Image: public.ecr.aws/docker/library/redis:latest
+          # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using_awslogs.html
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref TaskDefinitionLogGroup
+              awslogs-stream-prefix: redis-container
+              awslogs-region: !Ref AWS::Region
+          PortMappings:
+            - ContainerPort: 6379
+              HostPort: 6379
+              Protocol: tcp
+
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref ECSClusterStack
+              - Cluster
+      LaunchType: FARGATE
+      DesiredCount: 1
+      TaskDefinition: !Ref TaskDefinition
+      HealthCheckGracePeriodSeconds: 60
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - Fn::ImportValue:
+                Fn::Join:
+                  - '-'
+                  - - !Ref NetworkStack
+                    - PrivateSubnet1
+            - Fn::ImportValue:
+                Fn::Join:
+                  - '-'
+                  - - !Ref NetworkStack
+                    - PrivateSubnet2
+          SecurityGroups:
+            - !Ref RedisContainerSecurityGroup
+      ServiceRegistries:
+        - RegistryArn: !GetAtt DiscoveryService.Arn
+          Port: 6379
+
+  RedisContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the ECS hosts that run containers.
+      GroupName:
+        Fn::Join:
+          - '-'
+          - - !Ref ProjectName
+            - redis
+            - container
+      VpcId:
+        Fn::ImportValue:
+          Fn::Join:
+            - '-'
+            - - !Ref NetworkStack
+              - VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          SourceSecurityGroupId:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref ALBStack
+                  - ServerContainerSecurityGroup
+
+Outputs:
+  ServiceName:
+    Value: !GetAtt [ Service, Name ]
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - ServiceName

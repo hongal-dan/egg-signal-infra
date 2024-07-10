@@ -292,6 +292,18 @@ Resources:
         NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
         ProjectName: !Ref ProjectName
 
+  RedisStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/redis.yaml
+      TimeoutInMinutes: 20
+      Parameters:
+        NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
+        ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
+        ECSClusterStack: !Select [ 1, !Split [ "/", !Ref ECSCluterStack ] ]
+        ProjectName: !Ref ProjectName
+        NamespaceStack: !Select [ 1, !Split [ "/", !Ref NamespaceStack ] ]
+
 Mappings:
   SubdomainSuffixMap:
     prod:
