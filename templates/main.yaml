@@ -119,6 +119,7 @@ Resources:
         HostedZoneId: !Ref HostedZoneId
 
   ECSStack:
+    DependsOn: RedisStack
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/ecs.yaml
