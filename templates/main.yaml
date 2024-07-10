@@ -57,7 +57,7 @@ Parameters:
     Type: String
 
 Resources:
-  ECSCluterStack:
+  ECSClusterStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/cluster.yaml
@@ -128,7 +128,7 @@ Resources:
         ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
         MaxContainers: !Ref MaxContainers
         SecretsArn: !Ref SecretsArn
-        ECSCluterStack: !Select [ 1, !Split [ "/", !Ref ECSCluterStack ] ]
+        ECSClusterStack: !Select [ 1, !Split [ "/", !Ref ECSClusterStack ] ]
 
   ServerPipelineStack:
     Type: AWS::CloudFormation::Stack
@@ -141,7 +141,7 @@ Resources:
         Repo: !Ref ServerRepository
         Branch: !Ref ServerBranch
         CodeStarConnectionArn: !Ref CodeStarConnectionArn
-        ECSCluterStack: !Select [ 1, !Split [ "/", !Ref ECSCluterStack ] ]
+        ECSClusterStack: !Select [ 1, !Split [ "/", !Ref ECSClusterStack ] ]
 
   Notification:
     Type: AWS::CloudFormation::Stack
@@ -217,7 +217,7 @@ Resources:
         ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
         MaxContainers: !Ref MaxContainers
         SecretsArn: !Ref SecretsArn
-        ECSCluterStack: !Select [ 1, !Split [ "/", !Ref ECSCluterStack ] ]
+        ECSClusterStack: !Select [ 1, !Split [ "/", !Ref ECSClusterStack ] ]
 
   WebPipelineStack:
     Type: AWS::CloudFormation::Stack
@@ -242,7 +242,7 @@ Resources:
                         - value
               - !Ref DomainName
         SecretsArn: !Ref SecretsArn
-        ECSCluterStack: !Select [ 1, !Split [ "/", !Ref ECSCluterStack ] ]
+        ECSClusterStack: !Select [ 1, !Split [ "/", !Ref ECSClusterStack ] ]
 
   WebCertificate:
     Type: AWS::CloudFormation::Stack
@@ -301,7 +301,7 @@ Resources:
       Parameters:
         NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
         ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
-        ECSClusterStack: !Select [ 1, !Split [ "/", !Ref ECSCluterStack ] ]
+        ECSClusterStack: !Select [ 1, !Split [ "/", !Ref ECSClusterStack ] ]
         ProjectName: !Ref ProjectName
         NamespaceStack: !Select [ 1, !Split [ "/", !Ref NamespaceStack ] ]
 
