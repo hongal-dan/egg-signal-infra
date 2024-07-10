@@ -129,6 +129,7 @@ Resources:
         MaxContainers: !Ref MaxContainers
         SecretsArn: !Ref SecretsArn
         ECSClusterStack: !Select [ 1, !Split [ "/", !Ref ECSClusterStack ] ]
+        ProjectName: !Ref ProjectName
 
   ServerPipelineStack:
     Type: AWS::CloudFormation::Stack

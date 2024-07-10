@@ -23,6 +23,9 @@ Parameters:
   ECSClusterStack:
     Type: String
 
+  ProjectName:
+    Type: String
+
 Resources:
   TaskDefinitionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -78,7 +81,11 @@ Resources:
               Protocol: tcp
           Environment:
             - Name: REDIS_HOST
-              Value: "redis"
+              Value:
+                Fn::Join:
+                  - '.'
+                  - - "redis"
+                    - !Ref ProjectName
             - Name: REDIS_PORT
               Value: "6379"
           Secrets:
