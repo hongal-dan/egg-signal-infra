@@ -28,6 +28,9 @@ Parameters:
     Type: String
     Description: Codestar Connection resource for clone code from GitHub
 
+  ECSClusterStack:
+    Type: String
+
 Resources:
   CodeBuildRole:
     Type: AWS::IAM::Role
@@ -167,7 +170,7 @@ Resources:
                   Fn::ImportValue:
                     Fn::Join:
                       - '-'
-                      - - !Ref ECSStack
+                      - - !Ref ECSClusterStack
                         - Cluster
                 ServiceName:
                   Fn::ImportValue:

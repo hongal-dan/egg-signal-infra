@@ -57,6 +57,12 @@ Parameters:
     Type: String
 
 Resources:
+  ECSCluterStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/backend/cluster/cluster.yaml
+      TimeoutInMinutes: 20
+
   NetworkStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -121,6 +127,7 @@ Resources:
         ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
         MaxContainers: !Ref MaxContainers
         SecretsArn: !Ref SecretsArn
+        ECSCluterStack: !Select [ 1, !Split [ "/", !Ref ECSCluterStack ] ]
 
   ServerPipelineStack:
     Type: AWS::CloudFormation::Stack
@@ -133,6 +140,7 @@ Resources:
         Repo: !Ref ServerRepository
         Branch: !Ref ServerBranch
         CodeStarConnectionArn: !Ref CodeStarConnectionArn
+        ECSCluterStack: !Select [ 1, !Split [ "/", !Ref ECSCluterStack ] ]
 
   Notification:
     Type: AWS::CloudFormation::Stack
@@ -208,7 +216,7 @@ Resources:
         ALBStack: !Select [ 1, !Split [ "/", !Ref ALBStack ] ]
         MaxContainers: !Ref MaxContainers
         SecretsArn: !Ref SecretsArn
-        ServerECSStack: !Select [ 1, !Split [ "/", !Ref ECSStack ] ]
+        ECSCluterStack: !Select [ 1, !Split [ "/", !Ref ECSCluterStack ] ]
 
   WebPipelineStack:
     Type: AWS::CloudFormation::Stack
@@ -216,7 +224,6 @@ Resources:
       TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/frontend/pipeline.yaml
       TimeoutInMinutes: 20
       Parameters:
-        ServerECSStack: !Select [ 1, !Split [ '/', !Ref ECSStack ] ]
         WebECSStack: !Select [ 1, !Split [ '/', !Ref WebECSStack ] ]
         Owner: !Ref GitHubOwner
         Repo: !Ref WebRepository
@@ -234,6 +241,7 @@ Resources:
                         - value
               - !Ref DomainName
         SecretsArn: !Ref SecretsArn
+        ECSCluterStack: !Select [ 1, !Split [ "/", !Ref ECSCluterStack ] ]
 
   WebCertificate:
     Type: AWS::CloudFormation::Stack

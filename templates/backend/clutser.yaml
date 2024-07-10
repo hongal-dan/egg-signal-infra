@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ECS cluster for every stack
+
+Resources:
+  Cluster:
+    Type: AWS::ECS::Cluster
+
+Outputs:
+  Cluster:
+    Value: !Ref Cluster
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - Cluster

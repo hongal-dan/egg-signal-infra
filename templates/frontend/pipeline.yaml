@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Backend CI/CD related resources template.
 Parameters:
-  ServerECSStack:
+  ECSClusterStack:
     Type: String
     Description: The name of corresponding ECS stack.
 
@@ -191,7 +191,7 @@ Resources:
                   Fn::ImportValue:
                     Fn::Join:
                       - '-'
-                      - - !Ref ServerECSStack
+                      - - !Ref ECSClusterStack
                         - Cluster
                 ServiceName:
                   Fn::ImportValue:

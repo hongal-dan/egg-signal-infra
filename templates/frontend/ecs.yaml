@@ -20,7 +20,7 @@ Parameters:
     Type: String
     Description: secrets-manager resource name
 
-  ServerECSStack:
+  ECSClusterStack:
     Type: String
 
 Resources:
@@ -95,7 +95,7 @@ Resources:
         Fn::ImportValue:
           Fn::Join:
             - '-'
-            - - !Ref ServerECSStack
+            - - !Ref ECSClusterStack
               - Cluster
       LaunchType: FARGATE
       DesiredCount: 1
@@ -169,7 +169,7 @@ Resources:
           - Fn::ImportValue:
               Fn::Join:
                 - '-'
-                - - !Ref ServerECSStack
+                - - !Ref ECSClusterStack
                   - Cluster
           - !GetAtt Service.Name
       ScalableDimension: ecs:service:DesiredCount
@@ -253,7 +253,7 @@ Resources:
             Fn::ImportValue:
               Fn::Join:
                 - '-'
-                - - !Ref ServerECSStack
+                - - !Ref ECSClusterStack
                   - Cluster
         - Name: ServiceName
           Value: !GetAtt Service.Name
