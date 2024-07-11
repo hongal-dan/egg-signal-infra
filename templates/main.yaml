@@ -306,6 +306,14 @@ Resources:
         ProjectName: !Ref ProjectName
         NamespaceStack: !Select [ 1, !Split [ "/", !Ref NamespaceStack ] ]
 
+  SQSStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/sqs.yaml
+      TimeoutInMinutes: 20
+      Parameters:
+        ProjectName: !Ref ProjectName
+
 Mappings:
   SubdomainSuffixMap:
     prod:

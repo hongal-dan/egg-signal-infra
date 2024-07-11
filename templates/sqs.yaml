@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Stack for generate SQS
+
+Parameters:
+  ProjectName:
+    Type: String
+
+Resources:
+  OpenviduScalingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName:
+        Fn::Join:
+          - '-'
+          - - !Ref ProjectName
+            - OpenviduScaling
+      SqsManagedSseEnabled: true
+
+  DefaultQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref OpenviduScalingQueue
+      PolicyDocument:
+        Statement:
+          - Action:
+              - SQS:*
+            Effect: Allow
+            Resource: !GetAtt [ OpenviduScalingQueue, Arn ]
+            Principal:
+              AWS: !Ref AWS::AccountId
+
+Outputs:
+  OpenviduScalingQueue:
+    Value: !Ref OpenviduScalingQueue
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - OpenviduScalingQueue
+
+  OpenviduScalingQueueArn:
+    Value: !GetAtt [ OpenviduScalingQueue, Arn ]
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - OpenviduScalingQueueArn
