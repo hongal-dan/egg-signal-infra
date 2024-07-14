@@ -63,9 +63,10 @@ Resources:
     Properties:
       Code:
         ZipFile: |
+          const response = require('cfn-response');
           const {DynamoDBClient, PutItemCommand} = require("@aws-sdk/client-dynamodb");
 
-          exports.handler = async (event) => {
+          exports.handler = async (event, context) => {
               const region = event.ResourceProperties.region
               const domainsTable = event.ResourceProperties.domainsTable
               // DynamoDB 클라이언트 생성
@@ -88,13 +89,15 @@ Resources:
                   
                   const results = await Promise.allSettled(promises)
                   
-                  results.forEach((result, index) => {
+                  results.forEach( async (result, index) => {
                       if (result.status === 'fulfilled') {
                       console.log(`Successfully inserted domain: ${domains[index]}`);
                     } else {
                       console.error(`Failed to insert domain: ${domains[index]}, Error: ${result.reason}`);
+                      await response.send(event, context, response.FAILED, {})
                     }
                   });
+                await response.send(event, context, response.SUCCESS, {})
               };
       Handler: index.handler
       Runtime: nodejs18.x
