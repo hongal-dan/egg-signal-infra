@@ -5,6 +5,7 @@ Parameters:
   ProjectName:
     Type: String
 
+# https://stackoverflow.com/questions/30866030/number-of-attributes-in-key-schema-must-match-the-number-of-attributes-defined-i
 Resources:
   DomainsTable:
     Type: AWS::DynamoDB::Table
@@ -15,8 +16,6 @@ Resources:
           KeyType: HASH
       AttributeDefinitions:
         - AttributeName: Domain
-          AttributeType: S
-        - AttributeName: isAvailable
           AttributeType: S
       BillingMode: PAY_PER_REQUEST
 
