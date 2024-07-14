@@ -314,6 +314,14 @@ Resources:
       Parameters:
         ProjectName: !Ref ProjectName
 
+  DynamoDBStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/dynamodb.yaml
+      TimeoutInMinutes: 20
+      Parameters:
+        ProjectName: !Ref ProjectName
+
 Mappings:
   SubdomainSuffixMap:
     prod:
