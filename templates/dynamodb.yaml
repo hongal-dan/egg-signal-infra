@@ -65,8 +65,8 @@ Resources:
         ZipFile: |
           const {DynamoDBClient, PutItemCommand} = require("@aws-sdk/client-dynamodb");
 
-          const region = process.env.region
-          const domainsTable = process.env.domainsTable
+          const region = event.ResourceProperties.region
+          const domainsTable = event.ResourceProperties.domainsTable
 
           exports.handler = async (event) => {
               // DynamoDB 클라이언트 생성
@@ -101,7 +101,12 @@ Resources:
       Runtime: nodejs18.x
       Timeout: 5
       Role: !GetAtt [ InitDomainLambdaRole, Arn ]
-      Environment:
-        Variables:
-          region: !Ref AWS::Region
-          domainsTable: !Ref DomainsTable
+
+  # https://docs.aws.amazon.com/ko_kr/lambda/latest/dg/services-cloudformation.html
+  InitDomains:
+    Type: AWS::CloudFormation::CustomResource
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt InitDomainLambda.Arn
+      region: !Ref AWS::Region
+      domainsTable: !Ref DomainsTable
