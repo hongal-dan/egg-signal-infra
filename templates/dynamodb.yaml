@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Domain related resources template.
+
+Parameters:
+  ProjectName:
+    Type: String
+
+Resources:
+  DomainsTable:
+    Type: AWS::DynamoDB::Table
+    Description: The DynamoDB Table for Domains.
+    Properties:
+      KeySchema:
+        - AttributeName: Domain
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: Domain
+          AttributeType: S
+        - AttributeName: isAvailable
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+
+  # https://docs.aws.amazon.com/ko_kr/amazondynamodb/latest/developerguide/iam-policy-example-data-crud.html
+  InitDomainLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Join:
+          - '-'
+          - - !Ref ProjectName
+            - InitDomainRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName:
+            Fn::Join:
+              - '-'
+              - - !Ref ProjectName
+                - InsertDataPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource: !GetAtt [ DomainsTable, Arn ]
+
+  # https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/dynamodb/command/PutItemCommand/
+  InitDomainLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          const {DynamoDBClient, PutItemCommand} = require("@aws-sdk/client-dynamodb");
+
+          const region = process.env.region
+          const domainsTable = process.env.domainsTable
+
+          exports.handler = async (event) => {
+              // DynamoDB 클라이언트 생성
+              const dynamoDBClient = new DynamoDBClient({region});
+                  // DynamoDB 에 insert Domain
+                  const domains = Array.from({length: 20}, (_, i) => `openvidu${i + 1}.syeong.link`)
+                  
+                  const promises = domains.map(domain => {
+                      const input = {
+                          "Item": {
+                              "Domain": {"S": domain},
+                              "isAvailable": {"S": "false"}
+                          },
+                          "TableName": domainsTable
+                      }
+                      
+                      const command = new PutItemCommand(input)
+                      return dynamoDBClient.send(command)
+                  })
+                  
+                  const results = await Promise.allSettled(promises)
+                  
+                  results.forEach((result, index) => {
+                      if (result.status === 'fulfilled') {
+                      console.log(`Successfully inserted domain: ${domains[index]}`);
+                    } else {
+                      console.error(`Failed to insert domain: ${domains[index]}, Error: ${result.reason}`);
+                    }
+                  });
+              };
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Timeout: 5
+      Role: !GetAtt [ InitDomainLambdaRole, Arn ]
+      Environment:
+        Variables:
+          region: !Ref AWS::Region
+          domainsTable: !Ref DomainsTable
