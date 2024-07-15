@@ -211,6 +211,9 @@ Resources:
         SecretsArn: !Ref SecretsArn
         SQSStack: !Select [ 1, !Split [ "/", !Ref SQSStack ] ]
         OpenviduStack: !Select [ 1, !Split [ "/", !Ref OpenviduStack ] ]
+        NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
+        DynamoDBStack: !Select [ 1, !Split [ "/", !Ref DynamoDBStack ] ]
+        HostedZoneId: !Ref HostedZoneId
 
   WebECSStack:
     Type: AWS::CloudFormation::Stack
