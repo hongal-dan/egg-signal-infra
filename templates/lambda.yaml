@@ -261,7 +261,7 @@ Resources:
               
               const { Messages } = await receiveMessage(SQS_URL)
               
-              if (!Messges) {
+              if (!Messages) {
                   console.log('no messages')
               }         
               
