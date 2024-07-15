@@ -209,7 +209,7 @@ Resources:
         ProjectName: !Ref ProjectName
         EnvironmentStage: !Ref EnvironmentStage
         SecretsArn: !Ref SecretsArn
-        SQSStack: !Select [ 1, !Split [ "/" !Ref SQSStack ] ]
+        SQSStack: !Select [ 1, !Split [ "/", !Ref SQSStack ] ]
 
   WebECSStack:
     Type: AWS::CloudFormation::Stack
