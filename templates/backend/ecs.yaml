@@ -26,6 +26,9 @@ Parameters:
   ProjectName:
     Type: String
 
+  SQSStack:
+    Type: String
+
 Resources:
   TaskDefinitionLogGroup:
     Type: AWS::Logs::LogGroup
@@ -88,6 +91,13 @@ Resources:
                     - !Ref ProjectName
             - Name: REDIS_PORT
               Value: "6379"
+            - Name: SQS_URL
+              Value:
+                Fn::ImportValue:
+                  Fn::Join:
+                    - '-'
+                    - - !Ref SQSStack
+                      - OpenviduScalingQueue
           Secrets:
             - Name: MONGODB_URI
               ValueFrom:

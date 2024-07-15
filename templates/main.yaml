@@ -130,6 +130,7 @@ Resources:
         SecretsArn: !Ref SecretsArn
         ECSClusterStack: !Select [ 1, !Split [ "/", !Ref ECSClusterStack ] ]
         ProjectName: !Ref ProjectName
+        SQSStack: !Select [ 1, !Split [ "/", !Ref SQSStack ] ]
 
   ServerPipelineStack:
     Type: AWS::CloudFormation::Stack
@@ -208,6 +209,7 @@ Resources:
         ProjectName: !Ref ProjectName
         EnvironmentStage: !Ref EnvironmentStage
         SecretsArn: !Ref SecretsArn
+        SQSStack: !Select [ 1, !Split [ "/" !Ref SQSStack ] ]
 
   WebECSStack:
     Type: AWS::CloudFormation::Stack
