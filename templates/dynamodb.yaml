@@ -112,3 +112,14 @@ Resources:
       ServiceToken: !GetAtt InitDomainLambda.Arn
       region: !Ref AWS::Region
       domainsTable: !Ref DomainsTable
+
+Outputs:
+  DynamoDBName:
+    Description: name of dynamodb table.
+    Value: !Ref DomainsTable
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - DynamoDBName

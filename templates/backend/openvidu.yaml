@@ -133,3 +133,14 @@ Resources:
       MinSize: '0'
       MaxSize: "10"
       DesiredCapacity: '0'
+
+Outputs:
+  OpenviduSecurityGroup:
+    Description: openvidu security group.
+    Value: !Ref OpenviduSecurityGroup
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - OpenviduSecurityGroup

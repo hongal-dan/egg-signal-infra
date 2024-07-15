@@ -210,6 +210,7 @@ Resources:
         EnvironmentStage: !Ref EnvironmentStage
         SecretsArn: !Ref SecretsArn
         SQSStack: !Select [ 1, !Split [ "/", !Ref SQSStack ] ]
+        OpenviduStack: !Select [ 1, !Split [ "/", !Ref OpenviduStack ] ]
 
   WebECSStack:
     Type: AWS::CloudFormation::Stack
