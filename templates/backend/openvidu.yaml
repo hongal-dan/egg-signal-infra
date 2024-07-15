@@ -54,7 +54,7 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        InstanceType: t3.medium
+        InstanceType: t3.small
         KeyName: !Ref KeyName
         ImageId: ami-0e6f2b2fa0ca704d0
         SecurityGroupIds:
