@@ -14,6 +14,9 @@ Parameters:
   SecretsArn:
     Type: String
 
+  SQSStack:
+    Type: String
+
 Resources:
   ServerPipelineAlertLambdaRole:
     Type: AWS::IAM::Role
@@ -194,6 +197,92 @@ Resources:
             Fn::Sub:
               - '{{resolve:secretsmanager:${SecretsArn}:SecretString:WEB_PIPELINE_WEBHOOK}}'
               - SecretName: !Ref SecretsArn
+
+  SQSPollingLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: "MyLambdaPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "sqs:ReceiveMessage"
+                  - "sqs:DeleteMessage"
+                  - "sqs:GetQueueAttributes"
+                Resource:
+                  - Fn::ImportValue:
+                      Fn::Join:
+                        - '-'
+                        - - !Ref SQSStack
+                          - OpenviduScalingQueueArn
+
+  # https://medium.com/@devrick84/node-js-%EA%B8%B0%EB%B0%98%EC%9C%BC%EB%A1%9C-sqs-%EC%A0%81%EC%9A%A9%ED%95%98%EA%B8%B0-2433677715d3
+  SQSPollingLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          const {
+              ReceiveMessageCommand,
+              DeleteMessageCommand,
+              SQSClient,
+              DeleteMessageBatchCommand,
+          } = require("@aws-sdk/client-sqs")
+
+          exports.handler = async (event) => {
+              const region = process.env.region
+              const SQS_URL = process.env.SQS_URL
+              // DynamoDB 클라이언트 생성
+              const sqsClient = new SQSClient({region});
+              
+              const receiveMessage = (url) => {
+                  sqsClient.send(
+                      new ReceiveMessageCommand({
+                      AttributeNames: ["SentTimestamp"],
+                      MaxNumberOfMessages: 1,
+                      MessageAttributeNames: ["All"],
+                      QueueUrl: url,
+                      WaitTimeSeconds: 20,
+                      VisibilityTimeout: 20,
+                    })
+                  )
+              }
+              
+              const { Messages } = await receiveMessage(SQS_URL)
+              
+              if (!Messges) {
+                  console.log('no messages')
+              }         
+              
+              if (Messages.length >= 1) {
+                  console.log(Messages)
+                  console.log(Messages[0])
+              }
+          };
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Timeout: 5
+      Role: !GetAtt [ SQSPollingLambdaRole, Arn ]
+      Environment:
+        Variables:
+          region: !Ref AWS::Region
+          SQS_URL:
+            Fn::ImportValue:
+              Fn::Join:
+                - '-'
+                - - !Ref SQSStack
+                  - OpenviduScalingQueue
 
 Outputs:
   ServerPipelineAlertLambdaArn:
