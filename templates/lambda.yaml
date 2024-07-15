@@ -239,36 +239,31 @@ Resources:
               SQSClient,
               DeleteMessageBatchCommand,
           } = require("@aws-sdk/client-sqs")
-
-          exports.handler = async (event) => {
-              const region = process.env.region
-              const SQS_URL = process.env.SQS_URL
-              // DynamoDB 클라이언트 생성
-              const sqsClient = new SQSClient({region});
-              
-              const receiveMessage = (url) => {
-                  sqsClient.send(
-                      new ReceiveMessageCommand({
-                      AttributeNames: ["SentTimestamp"],
-                      MaxNumberOfMessages: 1,
-                      MessageAttributeNames: ["All"],
-                      QueueUrl: url,
-                      WaitTimeSeconds: 20,
-                      VisibilityTimeout: 20,
-                    })
-                  )
-              }
-              
-              const { Messages } = await receiveMessage(SQS_URL)
-              
-              if (!Messages) {
-                  console.log('no messages')
-              }         
-              
-              if (Messages.length >= 1) {
-                  console.log(Messages)
-                  console.log(Messages[0])
-              }
+            
+            exports.handler = async (event) => {
+            const region = process.env.region
+            const SQS_URL = process.env.SQS_URL
+            // DynamoDB 클라이언트 생성
+            const sqsClient = new SQSClient({region});
+            
+            const input = {
+          AttributeNames: ["All"],
+          MaxNumberOfMessages: 1,
+          MessageAttributeNames: ["All"],
+          QueueUrl: SQS_URL,
+          WaitTimeSeconds: 0,
+          VisibilityTimeout: 0,
+          }
+            
+            const command = new ReceiveMessageCommand(input)
+            
+            const response = await sqsClient.send(command)
+            
+            if (!response.Messages) {
+            console.log('no message!')
+          } else {
+            console.log(response.Messages[0].MessageAttributes)
+          }
           };
       Handler: index.handler
       Runtime: nodejs18.x
