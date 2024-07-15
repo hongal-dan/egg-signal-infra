@@ -78,7 +78,7 @@ Resources:
                       const input = {
                           "Item": {
                               "Domain": {"S": domain},
-                              "isAvailable": {"S": "false"}
+                              "isAvailable": {"S": "true"}
                           },
                           "TableName": domainsTable
                       }
