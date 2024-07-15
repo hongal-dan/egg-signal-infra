@@ -79,7 +79,6 @@ Resources:
       ContainerDefinitions:
         - Name: redis-container
           Essential: true
-          Command: ["redis-server", "--notify-keyspace-events", "K$"]
           Image: public.ecr.aws/docker/library/redis:latest
           # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/using_awslogs.html
           LogConfiguration:
