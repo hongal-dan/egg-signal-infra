@@ -374,13 +374,13 @@ Resources:
               console.log('현재 바로 사용 가능한 인스턴스가 없어요!')
               for (const instance of instances) {
                   if (!isInstanceOlderThan(instance, 5)) {
-                      console.log('생성 후 초기화중인 인스턴스가 있어요!')
+                      console.log('생성 후 초기화중인 인스턴스가 있어요! 인스턴스를 새로 생성하지 않아요')
                       return
                   }
               }
               const newInstances = await listInstances(ec2Client, 'pending', 'initializing');
               if (newInstances.length > 0) {
-                  console.log('생성중인 인스턴스가 있어요!');
+                  console.log('생성중인 인스턴스가 있어요! 인스턴스를 새로 생성하지 않아요');
                   return;
               }
               
