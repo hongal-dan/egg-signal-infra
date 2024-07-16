@@ -214,6 +214,7 @@ Resources:
         NetworkStack: !Select [ 1, !Split [ "/", !Ref NetworkStack ] ]
         DynamoDBStack: !Select [ 1, !Split [ "/", !Ref DynamoDBStack ] ]
         HostedZoneId: !Ref HostedZoneId
+        RedisStack: !Select [ 1, !Split [ "/", !Ref RedisStack ] ]
 
   WebECSStack:
     Type: AWS::CloudFormation::Stack

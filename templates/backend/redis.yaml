@@ -160,3 +160,12 @@ Outputs:
           - '-'
           - - !Ref AWS::StackName
             - ServiceName
+
+  RedisContainerSecurityGroup:
+    Value: !Ref RedisContainerSecurityGroup
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - RedisContainerSecurityGroup
