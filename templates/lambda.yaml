@@ -289,7 +289,7 @@ Resources:
               const route53Client = new Route53Client({region});
               const cloudWatchClient = new CloudWatchClient({region});
               const dynamoDBClient = new DynamoDBClient({region});
-              const defaultInstanceDomainName = "openvidu.syeong.link";
+              const defaultInstanceDomainName = "openvidu.syeong.link.";
               
               const sqsInput = {
                   AttributeNames: ["All"],
@@ -328,8 +328,10 @@ Resources:
               
               for (const instance of instances) {
                   if (isInstanceOlderThan(instance, 5) && !(await isInstanceUnderDomain(route53Client, instance.PublicIpAddress, defaultInstanceDomainName))) {
+                      console.log('생긴지 5분이 지났으면서, initial instance 가 아닌 인스턴스 존재!')
                       const cpuUtilization = await getCpuUtilization(cloudWatchClient, instance.InstanceId);
                       if (cpuUtilization < 10) {
+                          console.log('그 중 CPU 사용량이 10% 이하인 인스턴스 존재!')
                           instancesToTerminate.push(instance.InstanceId);
                           let domain = await getInstanceDomain(route53Client, instance.PublicIpAddress);
                           if (domain) {
@@ -360,7 +362,6 @@ Resources:
                           domain = domain.replace(/\.$/, '');
                           if (domain && await isDomainHealthy(domain)) {
                               console.log('생긴지 5분 이상 되었고, cpu 50% 미만 사용중이면서 health check 통과한 인스턴스가 있어요!', domain)
-                              console.log(`Returning domain: ${domain}`);
                               // 여기에 redis 에 넣고, sqs 데이터 삭제하는 로직 추가되어야 함
                               return;
                           }
