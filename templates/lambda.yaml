@@ -346,6 +346,8 @@ Resources:
               if (instancesToTerminate.length > 0) {
                   console.log('삭제해야 할 인스턴스가 있어요!', instancesToTerminate)
                   await terminateInstances(ec2Client, instancesToTerminate);
+              } else {
+                  console.log('삭제해야 할 인스턴스가 없어요!')
               }
           }
           
