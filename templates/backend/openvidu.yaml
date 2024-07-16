@@ -74,7 +74,7 @@ Resources:
             curl https://s3-eu-west-1.amazonaws.com/aws.openvidu.io/install_openvidu_latest.sh -o install_openvidu_latest.sh
             bash install_openvidu_latest.sh &
             PID=$!
-            sleep 200
+            sleep 100
             if ps -p $PID > /dev/null; then
             echo "OpenVidu installation script timed out."
             kill $PID
