@@ -103,17 +103,6 @@ Resources:
                         - !Ref EnvironmentStage
                         - value
               - !Ref DomainName
-        OpenviduDomainName:
-          Fn::Join:
-            - '.'
-            - - Fn::Join:
-                  - ''
-                  - - openvidu
-                    - Fn::FindInMap:
-                        - SubdomainSuffixMap
-                        - !Ref EnvironmentStage
-                        - value
-              - !Ref DomainName
         ServerCertificateStack: !Select [ 1, !Split [ "/", !Ref APICertificate ] ]
         WebCertificateStack: !Select [ 1, !Split [ "/", !Ref WebCertificate ] ]
         HostedZoneId: !Ref HostedZoneId
@@ -182,17 +171,6 @@ Resources:
             - - Fn::Join:
                   - ''
                   - - egg-signal-server
-                    - Fn::FindInMap:
-                        - SubdomainSuffixMap
-                        - !Ref EnvironmentStage
-                        - value
-              - !Ref DomainName
-        OpenviduDomainName:
-          Fn::Join:
-            - '.'
-            - - Fn::Join:
-                  - ''
-                  - - openvidu
                     - Fn::FindInMap:
                         - SubdomainSuffixMap
                         - !Ref EnvironmentStage
@@ -285,7 +263,7 @@ Resources:
             - '.'
             - - Fn::Join:
                   - ''
-                  - - openvidu
+                  - - openvidu0
                     - Fn::FindInMap:
                         - SubdomainSuffixMap
                         - !Ref EnvironmentStage

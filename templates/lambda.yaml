@@ -307,7 +307,7 @@ Resources:
               const route53Client = new Route53Client({region});
               const cloudWatchClient = new CloudWatchClient({region});
               const dynamoDBClient = new DynamoDBClient({region});
-              const defaultInstanceDomainName = "openvidu.syeong.link.";
+              const defaultInstanceDomainName = "openvidu0.syeong.link.";
               
               const sqsInput = {
                   AttributeNames: ["All"],

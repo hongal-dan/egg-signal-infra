@@ -81,7 +81,7 @@ Resources:
             exit 1
             fi
             cd /opt/openvidu
-            sed -i 's/DOMAIN_OR_PUBLIC_IP=/DOMAIN_OR_PUBLIC_IP=openvidu.syeong.link/g' .env
+            sed -i 's/DOMAIN_OR_PUBLIC_IP=/DOMAIN_OR_PUBLIC_IP=openvidu0.syeong.link/g' .env
             sed -i 's/OPENVIDU_SECRET=/OPENVIDU_SECRET=hongaldan/g' .env
             sed -i 's/CERTIFICATE_TYPE=selfsigned/CERTIFICATE_TYPE=letsencrypt/g' .env
             sed -i 's/LETSENCRYPT_EMAIL=user@example.com/LETSENCRYPT_EMAIL=visioner2168@gmail.com/g' .env

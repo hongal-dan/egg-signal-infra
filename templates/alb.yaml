@@ -28,9 +28,6 @@ Parameters:
   WebCertificateStack:
     Type: String
 
-  OpenviduDomainName:
-    Type: String
-
 Resources:
   ServerLoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
