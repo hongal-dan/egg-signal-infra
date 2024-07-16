@@ -56,6 +56,9 @@ Parameters:
   EC2KeyName:
     Type: String
 
+  SQSPollingLambdaS3Key:
+    Type: String
+
 Resources:
   ECSClusterStack:
     Type: AWS::CloudFormation::Stack
@@ -193,6 +196,8 @@ Resources:
         DynamoDBStack: !Select [ 1, !Split [ "/", !Ref DynamoDBStack ] ]
         HostedZoneId: !Ref HostedZoneId
         RedisStack: !Select [ 1, !Split [ "/", !Ref RedisStack ] ]
+        SQSPollingLambdaS3Key: !Ref SQSPollingLambdaS3Key
+        S3BucketName: !Ref TemplateBucket
 
   WebECSStack:
     Type: AWS::CloudFormation::Stack

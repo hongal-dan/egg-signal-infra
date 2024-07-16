@@ -13,6 +13,7 @@
     "EnvironmentStage": "prod",
     "WebRepository": "egg-signal-app",
     "WebBranch": "main",
-    "EC2KeyName": "clion"
+    "EC2KeyName": "clion",
+    "SQSPollingLambdaS3Key": "sqs_polling_lambda.zip"
   }
 }
