@@ -362,7 +362,7 @@ Resources:
                               domain = domain.replace(/\.$/, '');
                               console.log('initial instance 가 아니면서 생긴지 5분이 넘었고, CPU 를 10% 이상 사용하지 않고 있는 인스턴스 존재! -> 이건 없애야해', domain)
                               await updateDynamoDB(dynamoDBClient, dynamoTable, domain, "true");
-                              const webHookURL = process.env.SERVER_PIPELINE_WEBHOOK;
+                              const webHookURL = process.env.INFRA_PIPELINE_WEBHOOK;
                               const content = `⛳️ **AWS CodePipeline Notification**\n\n**Instance 를 삭제했어요! domain: ${domain}**`;
                               const response = await fetch(webHookURL, {
                                 method: "POST",
@@ -559,7 +559,7 @@ Resources:
               await updateDynamoDB(dynamoDBClient, dynamoTable, availableDomain, 'false');
           
               console.log(`${availableDomain} 을 등록했어요!`)
-            const webHookURL = process.env.SERVER_PIPELINE_WEBHOOK;
+            const webHookURL = process.env.INFRA_PIPELINE_WEBHOOK;
             const content = `⛳️ **AWS CodePipeline Notification**\n\n**Instance 를 생성했어요! domain: ${availableDomain}**`;
             const response = await fetch(webHookURL, {
               method: "POST",
@@ -627,9 +627,9 @@ Resources:
       Role: !GetAtt [ SQSPollingLambdaRole, Arn ]
       Environment:
         Variables:
-          SERVER_PIPELINE_WEBHOOK:
+          INFRA_PIPELINE_WEBHOOK:
             Fn::Sub:
-              - '{{resolve:secretsmanager:${SecretsArn}:SecretString:SERVER_PIPELINE_WEBHOOK}}'
+              - '{{resolve:secretsmanager:${SecretsArn}:SecretString:INFRA_PIPELINE_WEBHOOK}}'
               - SecretName: !Ref SecretsArn
           HostedZoneId: !Ref HostedZoneId
           subnetId:
