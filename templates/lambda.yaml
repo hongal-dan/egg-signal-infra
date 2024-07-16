@@ -213,6 +213,18 @@ Resources:
               - '{{resolve:secretsmanager:${SecretsArn}:SecretString:WEB_PIPELINE_WEBHOOK}}'
               - SecretName: !Ref SecretsArn
 
+  SQSPollingLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: SQSPollingLambda
+    Properties:
+      LogGroupName:
+        Fn::Join:
+          - '-'
+          - - SQSPollingLambda
+            - !Ref EnvironmentStage
+            - logs
+      RetentionInDays: 7
+
   SQSPollingLambdaRole:
     Type: AWS::IAM::Role
     Properties:
@@ -230,6 +242,12 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
               - Effect: "Allow"
                 Action:
                   - "sqs:ReceiveMessage"
