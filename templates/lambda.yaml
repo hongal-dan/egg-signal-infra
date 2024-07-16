@@ -78,41 +78,47 @@ Resources:
       Code:
         ZipFile: |
           exports.handler = async function (event) {
-          try {
-          const { time, detail } = JSON.parse(event.Records[0].Sns.Message);
-          
-          const webHookURL = process.env.SERVER_PIPELINE_WEBHOOK;
-          const envStage = process.env.ENVIRONMENT_STAGE;
-          
-          if (!webHookURL || !envStage) {
-              throw new Error("Webhook URL or Environment Stage is missing");
-              }
-          
-          const utcTime = new Date(time);
-          const koreaTime = new Date(utcTime.getTime() + (9 * 60 * 60 * 1000));
-          const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short' };
-          const koreaTimeFormatted = new Intl.DateTimeFormat('ko-KR', options).format(koreaTime);
-          
-          const content = `⛳️ **AWS CodePipeline Notification-${envStage}**\n\n**Execution Status: ${detail.state}**\n\n**Time:** ${koreaTimeFormatted}`;
-          
-          const response = await fetch(webHookURL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ content })
-              });
-          
-              if (!response.ok) {
-                throw new Error(`Webhook request failed with status: ${response.status}`);
-              }
-          
-              return "Success";
+              try {
+                  const {time, detail} = JSON.parse(event.Records[0].Sns.Message);
+                  
+                  const webHookURL = process.env.SERVER_PIPELINE_WEBHOOK;
+                  const envStage = process.env.ENVIRONMENT_STAGE;
+                  
+                  if (!webHookURL || !envStage) {
+                      throw new Error("Webhook URL or Environment Stage is missing");
+                  }
+                  
+                  const utcTime = new Date(time);
+                  const koreaTime = new Date(utcTime.getTime() + (9 * 60 * 60 * 1000));
+                  const options = {year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      timeZoneName: 'short'};
+                  const koreaTimeFormatted = new Intl.DateTimeFormat('ko-KR', options).format(koreaTime);
+                  
+                  const content = `⛳️ **AWS CodePipeline Notification-${envStage}**\n\n**Execution Status: ${detail.state}**\n\n**Time:** ${koreaTimeFormatted}`;
+                  
+                  const response = await fetch(webHookURL, {
+                      method: "POST",
+                      headers: {
+                          "Content-Type": "application/json"
+                      },
+                      body: JSON.stringify({content})
+                  });
+                  
+                  if (!response.ok) {
+                      throw new Error(`Webhook request failed with status: ${response.status}`);
+                  }
+                  
+                  return "Success";
               } catch (e) {
-                console.error(e);
-                throw e;
+                  console.error(e);
+                  throw e;
               }
-            };  
+          };
 
       Role: !GetAtt [ ServerPipelineAlertLambdaRole, Arn ]
       Environment:
@@ -308,7 +314,7 @@ Resources:
               const cloudWatchClient = new CloudWatchClient({region});
               const dynamoDBClient = new DynamoDBClient({region});
               const defaultInstanceDomainName = "openvidu0.syeong.link.";
-              
+          
               const sqsInput = {
                   AttributeNames: ["All"],
                   MaxNumberOfMessages: 1,
@@ -317,23 +323,23 @@ Resources:
                   WaitTimeSeconds: 8,
                   VisibilityTimeout: 8
               };
-              
+          
               const command = new ReceiveMessageCommand(sqsInput);
               const response = await sqsClient.send(command);
-              
+          
               console.log('sqs response: ', response);
-              
+          
               if (!response.Messages) {
                   console.log('메시지 없음!');
                   await scaleDown(ec2Client, cloudWatchClient, route53Client, dynamoDBClient, dynamoTable, defaultInstanceDomainName);
                   return;
               }
-              
+          
               const message = response.Messages[0];
               console.log('메시지 있음!', message.MessageAttributes);
-              
+          
               await scaleUpAndCheckConnection(ec2Client, cloudWatchClient, route53Client, dynamoDBClient, dynamoTable, defaultInstanceDomainName);
-              
+          
               // 큐에서 메시지 삭제
               const deleteParams = {QueueUrl: SQS_URL, ReceiptHandle: message.ReceiptHandle};
               await sqsClient.send(new DeleteMessageCommand(deleteParams));
@@ -343,7 +349,7 @@ Resources:
               console.log('스케일 다운 시작!')
               const instances = await listInstances(ec2Client, 'running');
               const instancesToTerminate = [];
-              
+          
               for (const instance of instances) {
                   if (isInstanceOlderThan(instance, 5) && !(await isInstanceUnderDomain(route53Client, instance.PublicIpAddress, defaultInstanceDomainName))) {
                       console.log('생긴지 5분이 지났으면서, initial instance 가 아닌 인스턴스 존재!')
@@ -356,11 +362,30 @@ Resources:
                               domain = domain.replace(/\.$/, '');
                               console.log('initial instance 가 아니면서 생긴지 5분이 넘었고, CPU 를 10% 이상 사용하지 않고 있는 인스턴스 존재! -> 이건 없애야해', domain)
                               await updateDynamoDB(dynamoDBClient, dynamoTable, domain, "true");
+                              const webHookURL = process.env.SERVER_PIPELINE_WEBHOOK;
+                              const content = `⛳️ **AWS CodePipeline Notification**\n\n**Instance 를 삭제했어요! domain: ${domain}**`;
+                              const response = await fetch(webHookURL, {
+                                method: "POST",
+                                headers: {
+                                  "Content-Type": "application/json"
+                                },
+                                  body: JSON.stringify({ content })
+                                });
+          
+                                if (!response.ok) {
+                                  throw new Error(`Webhook request failed with status: ${response.status}`);
+                                }
+                                  return "Success";
+                                } catch (e) {
+                                  console.error(e);
+                                  throw e;
+                                }
+                              };  
                           }
                       }
                   }
               }
-              
+          
               if (instancesToTerminate.length > 0) {
                   console.log('삭제해야 할 인스턴스가 있어요!', instancesToTerminate)
                   await terminateInstances(ec2Client, instancesToTerminate);
@@ -372,7 +397,7 @@ Resources:
           async function scaleUpAndCheckConnection(ec2Client, cloudWatchClient, route53Client, dynamoDBClient, dynamoTable, defaultInstanceDomainName) {
               console.log('스케일 업 시작!')
               const instances = await listInstances(ec2Client, 'running');
-              
+          
               for (const instance of instances) {
                   if (isInstanceOlderThan(instance, 5)) {
                       const cpuUtilization = await getCpuUtilization(cloudWatchClient, instance.InstanceId);
@@ -388,7 +413,7 @@ Resources:
                       }
                   }
               }
-              
+          
               console.log('현재 바로 사용 가능한 인스턴스가 없어요!')
               for (const instance of instances) {
                   if (!isInstanceOlderThan(instance, 5)) {
@@ -401,7 +426,7 @@ Resources:
                   console.log('생성중인 인스턴스가 있어요! 인스턴스를 새로 생성하지 않아요');
                   return;
               }
-              
+          
               console.log('인스턴스를 새로 생성해요!')
               await launchNewInstance(ec2Client, route53Client, dynamoDBClient, dynamoTable);
           }
@@ -457,9 +482,9 @@ Resources:
               const record = records.find(record => {
                   return record.ResourceRecords ? record.ResourceRecords.some(r => r.Value.includes(instanceIp)) : false;
               });
-              
+          
               console.log('record: ', record);
-              
+          
               return record ? record.Name : null;
           }
           
@@ -469,9 +494,9 @@ Resources:
                   console.log('No available domain found');
                   return;
               }
-              
+          
               console.log('새 인스턴스를 생성해요!', availableDomain)
-              
+          
               const userDataScript = `#!/bin/bash
             apt update -y
             apt-get install -y ca-certificates curl
@@ -499,7 +524,7 @@ Resources:
             ./openvidu start
             `;
               const userDataBase64 = Buffer.from(userDataScript).toString('base64');
-              
+          
               const runInstanceCommand = new RunInstancesCommand({
                   ImageId: 'ami-062cf18d655c0b1e8',
                   InstanceType: 't3.small',
@@ -511,13 +536,13 @@ Resources:
                   SecurityGroupIds: [process.env.securityGroupId],
                   TagSpecifications: [{ResourceType: 'instance', Tags: [{Key: 'Name', Value: availableDomain}]}]
               });
-              
+          
               const runInstanceResponse = await ec2Client.send(runInstanceCommand);
               const instanceId = runInstanceResponse.Instances[0].InstanceId;
               const wait = (time) => new Promise((resolve) => setTimeout(resolve, time));
               await wait(3000);
               const instanceIp = await getInstanceIp(ec2Client, instanceId);
-              
+          
               const changeBatch = {
                   Changes: [{
                       Action: 'UPSERT',
@@ -529,16 +554,35 @@ Resources:
                       }
                   }]
               };
-              
+          
               const changeCommand = new ChangeResourceRecordSetsCommand({
                   HostedZoneId: process.env.HostedZoneId,
                   ChangeBatch: changeBatch
               });
-              
+          
               await route53Client.send(changeCommand);
               await updateDynamoDB(dynamoDBClient, dynamoTable, availableDomain, 'false');
-              
+          
               console.log(`${availableDomain} 을 등록했어요!`)
+            const webHookURL = process.env.SERVER_PIPELINE_WEBHOOK;
+            const content = `⛳️ **AWS CodePipeline Notification**\n\n**Instance 를 생성했어요! domain: ${availableDomain}**`;
+            const response = await fetch(webHookURL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+                body: JSON.stringify({ content })
+              });
+
+              if (!response.ok) {
+                throw new Error(`Webhook request failed with status: ${response.status}`);
+              }
+                return "Success";
+              } catch (e) {
+                console.error(e);
+                throw e;
+              }
+            };  
           }
           
           async function getAvailableDomain(dynamoDBClient, dynamoTable) {
@@ -547,7 +591,7 @@ Resources:
                   FilterExpression: 'isAvailable = :val',
                   ExpressionAttributeValues: {':val': {S: "true"}}
               });
-              
+          
               const response = await dynamoDBClient.send(scanCommand);
               if (response.Items.length > 0) {
                   return response.Items[0].Domain.S;
@@ -574,16 +618,16 @@ Resources:
           async function isDomainHealthy(domain) {
               return new Promise((resolve, reject) => {
                   const options = {hostname: domain, port: 443, method: 'GET'};
-                  
+          
                   const req = https.request(options, (res) => {
                       resolve(res.statusCode === 200);
                   });
-                  
+          
                   req.on('error', (e) => {
                       console.error(e);
                       resolve(false);
                   });
-                  
+          
                   req.end();
               });
           }
@@ -593,6 +637,10 @@ Resources:
       Role: !GetAtt [ SQSPollingLambdaRole, Arn ]
       Environment:
         Variables:
+          SERVER_PIPELINE_WEBHOOK:
+            Fn::Sub:
+              - '{{resolve:secretsmanager:${SecretsArn}:SecretString:SERVER_PIPELINE_WEBHOOK}}'
+              - SecretName: !Ref SecretsArn
           HostedZoneId: !Ref HostedZoneId
           subnetId:
             Fn::ImportValue:
