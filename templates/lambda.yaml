@@ -375,12 +375,7 @@ Resources:
                                 if (!response.ok) {
                                   throw new Error(`Webhook request failed with status: ${response.status}`);
                                 }
-                                  return "Success";
-                                } catch (e) {
-                                  console.error(e);
-                                  throw e;
-                                }
-                              };  
+                                  return "Success";  
                           }
                       }
                   }
@@ -578,12 +573,7 @@ Resources:
                 throw new Error(`Webhook request failed with status: ${response.status}`);
               }
                 return "Success";
-              } catch (e) {
-                console.error(e);
-                throw e;
-              }
-            };  
-          }
+            }
           
           async function getAvailableDomain(dynamoDBClient, dynamoTable) {
               const scanCommand = new ScanCommand({
