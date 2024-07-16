@@ -588,19 +588,13 @@ Resources:
           - Fn::ImportValue:
               Fn::Join:
                 - '-'
-                - - Fn::ImportValue:
-                      Fn::Join:
-                        - '-'
-                        - - !Ref NetworkStack
-                          - PrivateSubnet1
+                - - !Ref NetworkStack
+                  - PrivateSubnet1
           - Fn::ImportValue:
               Fn::Join:
                 - '-'
-                - - Fn::ImportValue:
-                      Fn::Join:
-                        - '-'
-                        - - !Ref NetworkStack
-                          - PrivateSubnet2
+                - - !Ref NetworkStack
+                  - PrivateSubnet2
 
   PollingLambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
