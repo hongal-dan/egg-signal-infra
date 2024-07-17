@@ -312,6 +312,15 @@ Resources:
       Parameters:
         ProjectName: !Ref ProjectName
 
+  EventBridgeStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucket}.s3.amazonaws.com/eventbridge.yaml
+      TimeoutInMinutes: 20
+      Parameters:
+        ProjectName: !Ref ProjectName
+        LambdaStack: !Select [ 1, !Split [ "/", !Ref LambdaStack ] ]
+
 Mappings:
   SubdomainSuffixMap:
     prod:

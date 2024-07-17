@@ -382,6 +382,98 @@ Resources:
       ToPort: 6379
       SourceSecurityGroupId: !Ref PollingLambdaSecurityGroup
 
+  ExecutePollingLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: "ExecutePollingLambdaPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: "Allow"
+                Action:
+                  - "lambda:*"
+                Resource:
+                  - "*"
+
+  ExecutePollingLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: ExecutePollingLambda
+    Properties:
+      LogGroupName:
+        Fn::Join:
+          - '-'
+          - - ExecutePollingLambda
+            - !Ref EnvironmentStage
+            - logs
+      RetentionInDays: 7
+
+  ExecutePollingLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          const {LambdaClient, InvokeCommand} = require('@aws-sdk/client-lambda')
+          
+          exports.handler = async function (event) {
+              const region = process.env.region;
+              const lambdaClient = new LambdaClient({region})
+              const sqsPollingLambdaName = process.env.SQSPollingLambdaName
+              let callCount = 1
+              const callPollingLambda = async () => {
+                  const params = {
+                      FunctionName: sqsPollingLambdaName,
+                      InvocationType: "Event"
+                  }
+                  const command = new InvokeCommand(params)
+                  
+                  try {
+                      await lambdaClient.send(command)
+                      console.log('invoke lambda!', callCount)
+                      callCount++
+                  } catch (e) {
+                      console.error('invoke lambda false!', e)
+                  }
+              }
+              
+              const wait = (time) => new Promise((resolve) => setTimeout(resolve, time));
+              
+              await wait(15000)
+              await callPollingLambda() // 15 초
+              
+              await wait(15000)
+              await callPollingLambda() // 30 초
+              
+              await wait(15000)
+              await callPollingLambda() // 45 초
+              
+              await wait(15000)
+              await callPollingLambda() // 60 초
+          };
+      Handler: index.handler
+      Runtime: nodejs18.x
+      Timeout: 70
+      Role: !GetAtt [ ExecutePollingLambdaRole, Arn ]
+      Environment:
+        Variables:
+          SQSPollingLambdaName: !Ref SQSPollingLambda
+          region: !Ref AWS::Region
+
 Outputs:
   ServerPipelineAlertLambdaArn:
     Description: Arn of Server Pipeline Alert Lambda
@@ -401,3 +493,12 @@ Outputs:
           - '-'
           - - !Ref AWS::StackName
             - WebPipelineAlertLambdaArn
+
+  ExecutePollingLambdaArn:
+    Value: !GetAtt [ ExecutePollingLambda, Arn ]
+    Export:
+      Name:
+        Fn::Join:
+          - '-'
+          - - !Ref AWS::StackName
+            - ExecutePollingLambdaArn
